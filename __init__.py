@@ -94,7 +94,10 @@ def getchar(file, size=1):
 
 
 class PyIstream:
-    def __init__(self, file, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        self.set_file(*args, **kwargs)
+    
+    def set_file(self, file, *args, **kwargs):
         if isinstance(file, (str, bytes, _o.PathLike)):
             self.filename = file
             self.file = open(file, "r", *args, **kwargs)
@@ -151,6 +154,10 @@ class PyIstream:
 
 
 pycin = PyIstream(_s.stdin) # Unable to debug
+
+
+def freopen(file, stream):
+    stream.set_file(file)
 
 
 _g = {}

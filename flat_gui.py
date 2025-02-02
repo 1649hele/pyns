@@ -368,7 +368,7 @@ class Sprite(pygame.sprite.Sprite):
     def backword(self, toBackword):
         self.forward(-toBackword)
 
-    def update(self, *args, **kwargs):
+    def update(self, x=None, y=None, *args, **kwargs):
         if self.flip_mode == FRRT:
             self.image = pygame.transform.rotate(self.old_image, self.angle.degrees)
         elif self.flip_mode == FLAR and self.angle.degrees > 180:
@@ -379,36 +379,15 @@ class Sprite(pygame.sprite.Sprite):
         self.old_center = self.center
         self.rect = self.image.get_rect()
         self.rect.center = self.old_center
-        if not (args or kwargs):
-            return self.rect.topleft
-        x = y = None
-        try:
-            x, y = args
-        except:
-            if len(kwargs) + len(args) == 2:
-                x = y = -1
-                if "x" in kwargs:
-                    x = kwargs["x"]
-                if "y" in kwargs:
-                    y = kwargs["y"]
-                elif "x" not in kwargs:
-                    return
-                if args:
-                    if x == -1:
-                        x = args[0]
-                    elif y == -1:
-                        y = args[0]
-            else:
-                return
+        
         if x is None and y is None:
-            return self.rect.topleft
+            return
+        
         if y is None:
             try:
                 self.set_image(x)
             except ValueError:
                 self.rect.topleft = x
-            else:
-                self.update()
         
         if not (isinstance(x, int) and isinstance(y, int)):
             return
