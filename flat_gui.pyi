@@ -234,18 +234,43 @@ class Sprite(pygame.sprite.Sprite):
     def forward(self, toForward: int) -> None:...
     def backword(self, toBackword: int) -> None:...
     @overload
-    def update(self) -> _Pos | None:...
+    def update(self) -> None:...
+    @overload
+    def update(
+        self,
+        image: _File | pygame.Surface,
+        size: _Size | None = None,
+        alpha: _Color | None = ...,
+    ) -> None: ...
+    @overload
+    def update(
+        self,
+        image: False,
+        size: _Size,
+        alpha: _Color | None = ...,
+    ) -> None: ...
+    @overload
+    def update(
+        self,
+        image: Sprite,
+    ) -> None: ...
+    @overload
+    def update(
+        self,
+        image: _Color | None,
+        size: _Size,
+        alpha: _Color | None = ...,
+    ) -> None: ...
     @overload
     def update(
             self,
-            image: Surface | _File,
-    ) -> None:...
+            size: _Size,
+            alpha: _Color | None = ...,
+    ) -> None: ...
     @overload
     def update(self, x: _Num, y: _Num) -> None:...
     @overload
     def update(self, xy: _Pos) -> None:...
-    @overload
-    def update(self, *args: Any, **kwargs: Any) -> None:...
     def angle_collide(
             self,
             angle: Literal["top", "bottom", "left", "right"],
@@ -259,6 +284,7 @@ class Sprite(pygame.sprite.Sprite):
 
     topleft = xy = property(lambda self:tuple(), lambda self, value: None, lambda self: None)
 
+def check_mouse(sprite: Rect | Sprite, op: Union[pygame.MOUSEBUTTONUP, pygame.MOUSEBUTTONDOWN, None]) -> bool | pygame.event.Event | None:...
 
 class Button(Sprite):
     image: pygame.Surface

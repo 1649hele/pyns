@@ -368,7 +368,8 @@ class Sprite(pygame.sprite.Sprite):
     def backword(self, toBackword):
         self.forward(-toBackword)
 
-    def update(self, x=None, y=None, *args, **kwargs):
+    @_overload
+    def update(self):
         if self.flip_mode == FRRT:
             self.image = pygame.transform.rotate(self.old_image, self.angle.degrees)
         elif self.flip_mode == FLAR and self.angle.degrees > 180:
@@ -379,20 +380,22 @@ class Sprite(pygame.sprite.Sprite):
         self.old_center = self.center
         self.rect = self.image.get_rect()
         self.rect.center = self.old_center
-        
-        if x is None and y is None:
-            return
-        
-        if y is None:
-            try:
-                self.set_image(x)
-            except ValueError:
-                self.rect.topleft = x
-        
+    
+    @_overload
+    def update(self, x, y):
         if not (isinstance(x, int) and isinstance(y, int)):
-            return
-
+            raise TypeError("x and y must be int")
         self.rect.topleft = (x, y)
+        Sprite.update(self)
+    
+    @_overload
+    def update(self, xy):
+        Sprite.update(self, xy[0], xy[1])
+    
+    @_overload
+    def update(self, *args, **kwargs):
+        self.set_image(*args, **kwargs)
+        Sprite.update(self)
     
     def copy(self):
         temp = self.__class__(
@@ -439,15 +442,30 @@ class Sprite(pygame.sprite.Sprite):
     
     @_overload
     def blit(self, sprite):
-        if not isinstance(sprite, Sprite):
-            raise TypeError("image")
-        self.old_image.blit(sprite.image, sprite.rect)
+        if not (hasattr(sprite, "image") and hasattr(sprite, "rect")):
+            raise TypeError("sprite object has not image or rect")
+        self.blit(sprite.image, sprite.rect)
     
     @_overload
     def blit(self, image, rect):
         self.old_image.blit(image, rect)
+        self.update()
         
     rectangle = property(lambda self: self.angle, set_angle)
+
+
+def check_mouse(sprite, op=None):
+    while hasattr(sprite, "rect"):
+        sprite = sprite.rect
+    temp = sprite.colliderect(Rect(mouse.get_pos(), (1, 1)))
+    if op is None:
+        return temp
+    elif temp:
+        for event in pygame.event.get(op):
+            if sprite.colliderect(Rect(event.pos, (1, 1))):
+                pygame.event.post(event)
+                return event
+    return None
 
 
 class Button(Sprite):
