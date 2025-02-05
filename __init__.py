@@ -153,7 +153,7 @@ class PyIstream:
     __lshift__ = __rshift__
 
 
-pycin = PyIstream(_s.stdin) # Unable to debug
+pycin = PyIstream(_s.stdin)
 
 
 def freopen(file, stream):

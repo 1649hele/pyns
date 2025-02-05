@@ -7,6 +7,7 @@ import time as _d
 import traceback as _r
 from collections import defaultdict as _defaultdict
 from typing import Callable
+import functools as _tools
 
 
 _stdout = _s.stdout
@@ -17,19 +18,6 @@ def set_function(module, name, newname=None):
         newname = name
     temp = getattr(module, name)
     exec("%s = temp" % newname)
-
-
-class Thread(_t.Thread):
-    def __init__(self, target, *args, group=None, **kwargs):
-        self.event = _t.Event
-        
-        def g():
-            if self.event.is_set():
-                pass
-        super().__init__(group, target, *args, **kwargs)
-    
-    def stop(self):
-        self.event.set()
 
 
 def flash_print(
@@ -314,7 +302,6 @@ class Information:
                         ),
                     ),
                 )
-                self.decorate += 1
 
 
 def overload_dummy(*funcs, raised=False):
@@ -329,6 +316,7 @@ def overload_dummy(*funcs, raised=False):
     funcs_parameter = "\n\t".join(funcs_parameter)
     funcs_parameter = "Unrecognized parameters, parameters is:\n\t" + funcs_parameter
     
+    @_tools.wraps(funcs[0])
     def overloads(*args, **kwargs):
         exc = []
         for func in funcs:
@@ -346,10 +334,6 @@ def overload_dummy(*funcs, raised=False):
         for e in exc:
             print(e, "\n", file=_s.stderr)
         exit(1)
-        
-    overloads.__name__ = funcs[0].__name__
-    overloads.__qualname__ = funcs[0].__qualname__
-    overloads.__module__ = funcs[0].__module__
     return overloads
 
 
@@ -423,6 +407,7 @@ def get_overloads(module, qaulname):
 
 def is_isAreRaise(_raise=None, name="inited", _is=False, func=None):
     if func is None:
+        @_tools.wraps(is_isAreRaise)
         def _is_isAreRaise(func, __raise=None, _name=None, __is=None):
             return is_isAreRaise(
                 __raise if __raise else _raise,
@@ -430,9 +415,9 @@ def is_isAreRaise(_raise=None, name="inited", _is=False, func=None):
                    __is if    __is else    _is,
                 func,
             )
-        _is_isAreRaise.__name__ = is_isAreRaise.__name__
         return _is_isAreRaise
     
+    @_tools.wraps(func)
     def new(self, *args, **kwargs):
         if getattr(self, name, _is) == _is:
             if isinstance(_raise, BaseException):
@@ -447,7 +432,6 @@ def is_isAreRaise(_raise=None, name="inited", _is=False, func=None):
                 raise ValueError("can't identify _raise parameter")
         return func(self, *args, **kwargs)
     
-    new.__name__ = func.__name__
     return new
 
 
@@ -455,10 +439,12 @@ nonefunc = lambda: None
 returnselffunc = lambda self: self
 
 
-def gosuper(name, func):
+def gosuper(func, name=None):
+    @_tools.wraps(func)
     def new(self, other):
         return getattr(super(self.__class__, self), name)(func(other))
-    new.__name__ = name
+    if name is not None:
+        new.__name__ = name
     return new
 
 

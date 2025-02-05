@@ -862,10 +862,7 @@ class RoundedRect(Sprite):
         self.draw(*args, **kwargs)
     
     def update(self, *args, **kwargs):
-        if args and kwargs:
-            self.draw(*args, **kwargs)
-        else:
-            return self.topleft
+        self.draw(*args, **kwargs)
     
     def draw(self, color, round, *rect, width=0, side_color=None):
         color = toColor(color)
