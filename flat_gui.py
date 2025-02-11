@@ -273,7 +273,7 @@ class Sprite(pygame.sprite.Sprite):
             if image is file and can't find the file to raise ValueError
                 The image parameter file can't be found
         """
-        if image is False:
+        if image is False or image is None:
             self.resize(size)
             return
         if isinstance(image, Sprite):
@@ -296,7 +296,6 @@ class Sprite(pygame.sprite.Sprite):
                     if image.lower().endswith(".gif"):
                         # 打开动图（未完成）
                         # 想法：先把GIF图像分成N个静图再依次打开
-                        # 可以调用函数的isinstance(image, (list, tuple))
                         pass
                     else:
                         self.image = pygame.image.load(image).convert_alpha()
@@ -848,13 +847,26 @@ class Text(Sprite):
                 self.font = pygame.font.SysFont(font, round(font_size))
         self.text = ""
         self.set_text(text)
-
+    
+    @_overload
+    def update(self, text=None, color=None):
+        if color is not None:
+            self.color = color
+        self.set_text(text)
+    
+    @_overload
+    def update(self, text=None, color=None, xy=(None, None)):
+        super(Text, self).update(xy[0], xy[1])
+        if color is not None:
+            self.color = color
+        self.set_text(text)
+    
+    @_overload
     def update(self, text=None, color=None, x=None, y=None):
         super(Text, self).update(x, y)
         if color is not None:
             self.color = color
         self.set_text(text)
-
 
 class RoundedRect(Sprite):
     def __init__(self, *args, **kwargs):
