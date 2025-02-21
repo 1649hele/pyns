@@ -250,7 +250,7 @@ class Sprite(pygame.sprite.Sprite):
             args=(alpha,),
             daemon=True,
         ).start()
-
+    
     def set_image(self, image, size=None, alpha=None):
         """
         :param image:
@@ -273,68 +273,77 @@ class Sprite(pygame.sprite.Sprite):
             if image is file and can't find the file to raise ValueError
                 The image parameter file can't be found
         """
-        if image is False or image is None:
+        if image is False:
             self.resize(size)
             return
         if isinstance(image, Sprite):
-            self.image = image.image
+            self.old_image = image.old_image
             if size is not None:
-                self.image = pygame.transform.scale(self.image, size)
+                self.old_image = pygame.transform.scale(
+                    self.old_image, size
+                    )
             self.rect = image.rect
             return
         if isinstance(image, str):
             if toColor(image, False) is not image or isinstance(
-                    image, Color):
+                    image, Color
+            ):
                 if size is None:
                     raise ValueError("_size parameter can't be None")
-                self.image = pygame.Surface(size).convert_alpha()
-                self.image.fill(toColor(image))
+                self.old_image = pygame.Surface(size).convert_alpha()
+                self.old_image.fill(toColor(image))
             else:
                 if not _isabs(image):
                     image = _join(_getcwd(), image)
                 try:
+                    print(image)
                     if image.lower().endswith(".gif"):
                         # 打开动图（未完成）
                         # 想法：先把GIF图像分成N个静图再依次打开
+                        # 可以调用函数的isinstance(image, (list, tuple))
                         pass
                     else:
-                        self.image = pygame.image.load(image).convert_alpha()
+                        self.old_image = pygame.image.load(
+                            image
+                            ).convert_alpha()
                     
                     if size is not None:
-                        self.image = pygame.transform.scale(
-                            self.image, size
-                            )
+                        self.old_image = pygame.transform.scale(
+                            self.old_image, size
+                        )
                 except FileNotFoundError:
                     raise ValueError(
                         "The image parameter file can't be found: %s" %
-                        image)
+                        image
+                    )
         elif isinstance(image, (list, tuple)):
             if all(isinstance(file, (str, Surface)) for file in image):
                 # 打开多个图片（未完成）
-                # 想法：依次打开（需要在update的时候切换
+                # 想法：依次打开（需要在update的时候切换）
                 pass
             if len(image) == 2:
                 self.set_image(None, image, alpha=alpha)
                 return
             if size is None:
                 raise ValueError("size parameter can't be None")
-            self.image = pygame.Surface(size).convert_alpha()
-            self.image.fill(image)
+            self.old_image = pygame.Surface(size).convert_alpha()
+            self.old_image.fill(image)
         elif isinstance(image, Surface):
-            self.image = image.convert_alpha()
+            self.old_image = image.convert_alpha()
         elif image is None:
             if size is None:
                 raise ValueError("_size parameter can't be None")
-            self.image = pygame.Surface(size).convert_alpha()
+            self.old_image = pygame.Surface(size).convert_alpha()
         else:
             raise ValueError(
-                "The image parameter isn't recognized: %s" % image)
-
+                "The image parameter isn't recognized: %s" % image
+            )
+        
         if hasattr(self, "rect"):
             topleft = self.rect.topleft
         else:
             topleft = (0, 0)
-        self.rect = self.image.get_rect()
+        self.rect = self.old_image.get_rect()
         self.rect.topleft = topleft
         if alpha:
             self.alpha(alpha)
