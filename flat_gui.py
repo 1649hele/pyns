@@ -347,6 +347,7 @@ class Sprite(pygame.sprite.Sprite):
         self.rect.topleft = topleft
         if alpha:
             self.alpha(alpha)
+        self.update()
 
     def __init__(
             self,
@@ -359,13 +360,12 @@ class Sprite(pygame.sprite.Sprite):
         super(Sprite, self).__init__(*groups)
         self.name = "%s object(number: %d)" % (self.__class__.__name__, self._name)
         self.__class__._name += 1
-        self.set_image(image, size)
-        self.old_image = self.image.copy()
         self.set_angle(angle)
         self._stop = False
         self._suspend = False
         self.flip_mode=filp_mode
         self.old_center = (100, 100)
+        self.set_image(image, size)
     
     def forward(self, toForward):
         toX, toY = self.angle.cos(), self.angle.sin()
