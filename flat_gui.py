@@ -17,7 +17,7 @@ try:
     from .func import overload as _overload
     from .iter import fill as _fill, flatten as _flatten
     from .structures import Stack as _Stk
-    from .url import (
+    from .translate import (
         CHINESE as _c, ERRORCODE as _r, idlang as _il, toPinyin as _tp,
     )
 except ImportError:
@@ -26,7 +26,7 @@ except ImportError:
     from func import overload as _overload
     from iter import fill as _fill, flatten as _flatten
     from structures import Stack as _Stk
-    from url import (
+    from translate import (
         CHINESE as _c, ERRORCODE as _r, idlang as _il, toPinyin as _tp,
     )
 
@@ -296,7 +296,6 @@ class Sprite(pygame.sprite.Sprite):
                 if not _isabs(image):
                     image = _join(_getcwd(), image)
                 try:
-                    print(image)
                     if image.lower().endswith(".gif"):
                         # 打开动图（未完成）
                         # 想法：先把GIF图像分成N个静图再依次打开
@@ -347,7 +346,7 @@ class Sprite(pygame.sprite.Sprite):
         self.rect.topleft = topleft
         if alpha:
             self.alpha(alpha)
-        self.update()
+        Sprite.update(self)
 
     def __init__(
             self,

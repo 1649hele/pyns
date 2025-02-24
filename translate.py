@@ -1,5 +1,5 @@
 import requests as _r
-
+# 重写！
 
 SELF = 68719476736
 ERRORCODE = 137438953472
@@ -53,8 +53,6 @@ def idlang(text, cantreturn=ERRORMSG, appid=None, appkey=None):
     import string
     import random
     import re
-    __appid = appid
-    __appkey = appkey
     chardict = {}
     for _char in re.split(
         r"[。？！\s]\s*",
@@ -78,7 +76,7 @@ def idlang(text, cantreturn=ERRORMSG, appid=None, appkey=None):
         for appid, appkey in (
                 (20231110001876133, "_n76IPCbijgFF3os4yfQ"),
                 (_appid, _appkey),
-        ) if not (__appid or __appkey) else ((appid, appkey),):
+        ) + () if not (appid and appkey) else ((appid, appkey),):
             sign = md5(str(appid) + _char + str(salt) + appkey)
             payload = {
                 "salt": salt,
@@ -95,7 +93,7 @@ def idlang(text, cantreturn=ERRORMSG, appid=None, appkey=None):
                     else:
                         chardict[lang] = lenchar
                 break
-            elif appid == __appid or (appid == _appid and __appid is None):
+            else:
                 return _cantreturn(cantreturn, url, result, text)
     if len(chardict) == 0:
         return None

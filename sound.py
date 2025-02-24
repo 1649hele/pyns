@@ -1,9 +1,9 @@
 from pydub import playback as _pupb
 import pyaudio as _pd, wave as _wv, os as _os, pydub as _pu, threading as _td, librosa as _lr, soundfile as _sf, atexit as _ax, numpy as _np, io as _io, pyttsx3 as _ts
 try:
-    from . import func as _f, iter as _i, url as _u
+    from . import func as _f, iter as _i
 except ImportError:
-    import func as _f, iter as _i, url as _u
+    import func as _f, iter as _i
 
 
 FILE = "dd29442deca69f52c50006b831cb216edf78a7da33748f0a80ff19f2ebe57ecd"
