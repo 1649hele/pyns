@@ -876,6 +876,7 @@ class Text(Sprite):
             self.color = color
         self.set_text(text)
 
+
 class RoundedRect(Sprite):
     def __init__(self, *args, **kwargs):
         super(Sprite, self).__init__()

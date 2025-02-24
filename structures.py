@@ -4,7 +4,6 @@ try:
 except ModuleNotFoundError:
     from .iter import flatten as _fl, toTuple as _tT
     from .func import Count as _Count
-import re as _re
 import sys as _sys
 
 
@@ -501,11 +500,15 @@ class Stack:
         
     @property
     def top(self):
-        if self.empty:
+        if self.empty():
             raise EmptyError(self)
         return self._list[-1]
     
-    @property
+    @top.setter
+    def top(self, value):
+        self.pop()
+        self.push(value)
+    
     def empty(self):
         return not self._list
     
@@ -519,12 +522,8 @@ class Stack:
     def push(self, __obj):
         self._list.append(__obj)
     
-    @top.setter
-    def top(self, __obj):
-        self.push(__obj)
-    
     def pop(self):
-        if self.empty:
+        if self.empty():
             raise EmptyError(self)
         return self._list.pop()
     
@@ -535,7 +534,7 @@ class Stack:
         return str(list(self))
     
     def __getitem__(self, item):
-        return self._list[item]
+        return self._list[self.size-item-1]
 
 
 class Queue:
@@ -559,7 +558,6 @@ class Queue:
     def push(self, __obj):
         self._list.append(__obj)
     
-    @property
     def empty(self):
         return not self._list
     
@@ -864,15 +862,17 @@ class HashList:
         self.add(*adds)
     
     def add(self, *adds):
+        adds = _fl(adds)
         for obj in adds:
-            self._dict[obj] = True
+            self._dict[hash(obj)] = True
     
     def has(self, has):
         return has in self._dict
     
     def remove(self, *removes):
+        removes = _fl(removes)
         for obj in removes:
-            del self._dict[obj]
+            del self._dict[hash(obj)]
     
     __contains__ = has
 
@@ -885,194 +885,4 @@ def treeToTuple(tree):
             temp[-1].append(tree[j])
         temp[-1] = tuple(temp[-1])
     return tuple(temp)
-    
 
-PREFIX = "prefix"
-SUFFIX = "suffix"
-INFIX  = "infix"
-operator_level = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3, 'log': 4, '!': 5}
-
-
-def isnumber(number):
-    zf = "[-+]"
-    d = fr"[-+]?\d*\.?\d*([eE]\d*\.?\d*)?|[a-zA-Z_]\w*"
-    digit = f"({d}+|{d}+.{d}+|.{d}+|{d}+.)"
-    digit = f"{zf}?{digit}"
-    e = f"([eE]+{digit}+)"
-    return bool(_re.fullmatch(f"{zf}?{digit}+{e}?", number))
-
-
-def tokenize(expression):
-    floater = r"[-+]?\d+(\.\d*)?"
-    integer = r"[-+]?\d+"
-    num = fr"{floater}([eE]{integer})?"
-    complexer = fr"{num}([-+]{num}[ijIJ])?"
-    operator = r"(?<=\d)[+\-](?=\d)"
-    oo = r"[/*^!()]"
-    tokens = _re.findall(
-        fr"({operator}|{complexer}|{oo}|{floater}|{integer}|[a-zA-Z_]\w*)",
-        expression,
-    )
-    tokens = [token[0] for token in tokens if token[0]]
-    print(expression, tokens, "tokenize")
-    return tokens
-
-
-def _isOperator(token):
-    return token in ['+', '-', '*', '/', '^', "log", "**"]
-
-
-def isOperator(token):
-    return token in ['+', '-', '*', '/', '^', "log", '!', "**"]
-
-
-def _er():
-    raise SyntaxError("parameter is not expression")
-
-
-def checkExpressionType(expression):
-    if not isinstance(expression, str):
-        expression = toString(expression)
-    tokens = tokenize(expression)
-    if not tokens:
-        raise SyntaxError("expression is empty")
-    first_token = tokens[0]
-    last_token = tokens[-1]
-
-    if _isOperator(first_token) and not _isOperator(last_token):
-        return PREFIX
-    elif not _isOperator(first_token) and _isOperator(last_token):
-        return SUFFIX
-    elif not _isOperator(first_token) and not _isOperator(last_token):
-        return INFIX
-    else:
-        _er()
-
-
-def toInfix(expression):
-    if not isinstance(expression, str):
-        expression = toString(expression)
-    tokens = tokenize(expression)
-    et = checkExpressionType(expression)
-    if et == INFIX:
-        return _tT(tokens)
-    stk = Stack()
-    for token in reversed(tokens) if et == PREFIX else tokens:
-        if token == "!":
-            if stk.empty:
-                _er()
-            arg = stk.pop()
-            stk.push((arg, token))
-        elif _isOperator(token):
-            if stk.size < 2:
-                _er()
-            if et == PREFIX:
-                left = stk.pop()
-                right = stk.pop()
-            else:
-                right = stk.pop()
-                left = stk.pop()
-            stk.push((left, token, right))
-        else:
-            stk.push(token)
-    if stk.size != 1:
-        _er()
-    return stk[0]
-
-
-def toString(expression):
-    if isinstance(expression, str):
-        return expression
-    if isinstance(expression, (tuple, list)):
-        return str(expression).replace(",", "").replace("'", "")[1:-1]
-
-
-def toSuffix(expression):
-    if not isinstance(expression, str):
-        expression = toString(expression)
-    tokens = tokenize(expression)
-    et = checkExpressionType(expression)
-    if et == SUFFIX:
-        return _tT(tokens)
-    if et == PREFIX:
-        return toSuffix(toInfix(expression))
-    temp = []
-    stk = Stack()
-    for token in tokens:
-        if isnumber(token):
-            temp.append(token)
-        elif token == '(':
-            stk.push(token)
-        elif token == ')':
-            while not stk.empty and stk.top != '(':
-                temp.append(stk.pop())
-            stk.pop()
-        else:
-            while not stk.empty and (stk.top != '(' and
-                    operator_level[stk.top] >= operator_level[token]):
-                temp.append(stk.pop())
-            stk.push(token)
-    while not stk.empty:
-        if stk.top == '(':
-            _er()
-        temp.append(stk.pop())
-    return tuple(temp)
-
-
-def toPrefix(expression):
-    if not isinstance(expression, str):
-        expression = toString(expression)
-    tokens = tokenize(expression)
-    et = checkExpressionType(expression)
-    if et == PREFIX:
-        return _tT(tokens)
-    if et == SUFFIX:
-        return toPrefix(toInfix(expression))
-    temp = []
-    stk = Stack()
-    for token in reversed(tokens):
-        if isnumber(token):
-            temp.append(token)
-        elif token == ')':
-            stk.push(token)
-        elif token == '(':
-            while not stk.empty and stk.top != ')':
-                temp.append(stk.pop())
-            stk.pop()
-        else:
-            while not stk.empty and (stk.top != ')' and
-                    operator_level[stk.top] >= operator_level[token]):
-                temp.append(stk.pop())
-            stk.push(token)
-    while not stk.empty:
-        if stk.top == ')':
-            _er()
-        temp.append(stk.pop())
-    return tuple(reversed(temp))
-        
-
-class Expression(BinaryTree):
-    def __init__(self, expression):
-        expression = toString(toInfix(toString(expression)))
-        print(expression)
-        self._list = []
-        nex = ""
-        si = 0
-        for token in tokenize(expression):
-            print(token)
-            if isinstance(token, int) or \
-                    _re.fullmatch(r"[-+]?\d*\.?\d*([eE]\d*\.?\d*)?", token):
-                nex += "array_%d" % len(self._list)
-                self._list.append(token)
-            else:
-                nex += token
-        infix = list(nex.replace("(", "").replace(")", ""))
-        suffix = list(toSuffix(nex))
-        print(infix, suffix)
-        super(Expression, self).__init__(suffix.pop())
-        if not isnumber(self.head):
-            self.left = Expression(infix[:infix.index(self.head)])
-
-
-if __name__ == '__main__':
-    print(Expression("(1+1)*2+2!"))
