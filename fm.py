@@ -412,11 +412,13 @@ class Complex:
     def __init__(self, __obj):
         if isinstance(__obj, (list, tuple)):
             self.__init__(*__obj)
-        else:
-            try:
-                self.complex = complex(__obj)
-            except:
-                raise TypeError("__obj must be comlex, str, int, float, list or tuple, not %s" % type(__obj))
+            return
+        elif isinstance(__obj, str):
+            __obj = __obj.replace("i", "j").replace("I", "J")
+        try:
+            self.complex = complex(__obj)
+        except:
+            raise TypeError("__obj must be comlex, str, int, float, list or tuple, not %s" % type(__obj))
         
     @_overload
     def __init__(self, angle, length):
@@ -658,15 +660,14 @@ def lim(x):
     return x & (- x)
 
 
-OPERATOR = {"(": 0, ")": 0, "+": 1, "-": 1, "*": 2, "/": 2, "**": 3, "log": 3}
-OPERATOR_FUNC = {}
+OPERATOR = {"(": 0, ")": 0, "+": 1, "-": 1, "*": 2, "/": 2, "//": 2, "**": 3, "log": 3}
+OPERATOR_FUNC = {"log": log}
 for op in OPERATOR.keys():
     if op not in ("(", ")", "log"):
         OPERATOR_FUNC[op] = eval("lambda a, b: a %s b" % op)
-    elif op == "log":
-        OPERATOR_FUNC[op] = log
-reg_d = r"[+-]*\s*(?:\d+(?:\.\d*)?|\.\d+)"
-reg_exc = r"[+-]*\s*(?:\d+(?:\.\d*)?|\.\d+)|\s*(?:\*\*| log )\s*|\s*(?:\*|/{1,2})\s*|\s*[+-]\s*|\s*[()]\s*"
+reg_d = r"[+-]*\s*(\d+(?:\.\d*)?|\.\d+)"
+reg_d = r"%s(?:[+-]%s[IJij])?"
+reg_exp = r"\s*(%s|(?:\*\*| log )|(?:\*|/{1,2})|[+-]|[()])\s*" % reg_d
 _reg_d = _re.compile(reg_d)
 SUFFIX = "suffix"
 PREFIX = "prefix"
@@ -679,12 +680,11 @@ def isdigit(s):
     return bool(_reg_d.match(s))
 
 
-def split_exc(exc):
-    temp = _re.findall(reg_exc, exc)
+def split_exp(exp):
+    temp = _re.findall(reg_exp, exp)
     for i in range(len(temp)):
         temp[i] = temp[i].strip()
         try:
-            temp[i] = temp[i].replace("i", "j").replace("I", "J")
             temp[i] = Complex(temp[i])
         except:
             pass
@@ -699,36 +699,49 @@ def eval_op(op, a, b):
     return OPERATOR_FUNC[op](a, b)
 
 
-def getSuffix(exc):
-    exc = _cpy(exc)
-    if isinstance(exc, str):
-        exc = split_exc(exc)
+def reverse_expression(exp):
+    if isinstance(exp, str):
+        exp = split_exp(exp)
+    nw = []
+    for p in reversed(exp):
+        if p == "(":
+            p = ")"
+        elif p == ")":
+            p = "("
+        nw.append(p)
+    return nw
+
+
+def getSuffix(exp):
+    exp = _cpy(exp)
+    if isinstance(exp, str):
+        exp = split_exp(exp)
     stk = _Stk()
-    error_turn = ValueError("exc parameter must be a suffix")
-    while len(exc) > 1:
-        p = exc.pop()
+    error_turn = ValueError("exp parameter must be a suffix")
+    while len(exp) > 1:
+        p = exp.pop()
         if isdigit(p):
             try:
                 stk.top.append(p)
             except:
                 return error_turn
             if len(stk.top) == 2:
-                exc.append(eval_op(*stk.top))
+                exp.append(eval_op(*stk.top))
                 stk.pop()
         else:
             stk.push([p])
     if stk.empty():
-        return exc[0]
+        return exp[0]
     else:
         return error_turn
 
 
-def getPrefix(exc):
-    if isinstance(exc, str):
-        exc = split_exc(exc)
+def getPrefix(exp):
+    if isinstance(exp, str):
+        exp = split_exp(exp)
     stk = _Stk()
-    error_turn = ValueError("exc parameter must be a prefix")
-    for p in reversed(exc):
+    error_turn = ValueError("exp parameter must be a prefix")
+    for p in reversed(exp):
         if isdigit(p):
             stk.push(p)
         else:
@@ -742,27 +755,57 @@ def getPrefix(exc):
         return stk.top
 
 
-def toSuffix(exc):
-    if isinstance(exc, str):
-        exc = split_exc(exc)
-    et, _ = getExpressionType(exc)
+def getInfix(exp):
+    if isinstance(exp, str):
+        exp = split_exp(exp)
+    if exp[0] == "(" and exp[-1] == ")":
+        return getInfix(exp[1:-1])
+    error_turn = ValueError("exp parameter must be a infix")
+    if len(exp) == 1 and not isdigit(exp[0]):
+        return error_turn
+    mn, mnid = 1e18, -1
+    for id, p in enumerate(exp):
+        if not isdigit(p) and p not in ("(", ")") and mn >= OPERATOR[p]:
+            mn, mnid = OPERATOR[p], id
+    if mnid == -1:
+        if len(exp) > 1:
+            return error_turn
+        return exp[0]
+    else:
+        return eval_op(exp[mnid], getInfix(exp[:mnid]), getInfix(exp[mnid+1:]))
+
+
+def getExpressionType(exp):
+    if isinstance(exp, str):
+        exp = split_exp(exp)
+    for func, typ in zip([getSuffix, getPrefix, getInfix], [SUFFIX, PREFIX, INFIX]):
+        temp = func(exp)
+        if not isinstance(temp, Exception):
+            return (typ, func)
+    return ValueError("parameter exp must be a expression")
+
+
+def toSuffix(exp):
+    if isinstance(exp, str):
+        exp = split_exp(exp)
+    et, _ = getExpressionType(exp)
     if isinstance(et, Exception):
         raise et
     if et == PREFIX:
         stk = _Stk()
-        for p in reversed(exc):
+        for p in reversed(exp):
             if isdigit(p):
                 stk.push([p])
             else:
                 stk.push([stk.pop(), stk.pop(), p])
         return list(stk)
     elif et == SUFFIX:
-        return exc
+        return exp
     else:
         output = []
         stk = _Stk()
         stk.push("(")
-        for p in exc + [")"]:
+        for p in exp + [")"]:
             if isdigit(p):
                 output.append(p)
             elif p != ")":
@@ -776,60 +819,17 @@ def toSuffix(exc):
         return output
 
 
-def getInfix(exc):
-    if isinstance(exc, str):
-        exc = split_exc(exc)
-    if exc[0] == "(" and exc[-1] == ")":
-        return getInfix(exc[1:-1])
-    error_turn = ValueError("exc parameter must be a infix")
-    if len(exc) == 1 and not isdigit(exc[0]):
-        return error_turn
-    mn, mnid = 1e18, -1
-    for id, p in enumerate(exc):
-        if not isdigit(p) and p not in ("(", ")") and mn > OPERATOR[p]:
-            mn, mnid = OPERATOR[p], id
-    if mnid == -1:
-        if len(exc) > 1:
-            return error_turn
-        return exc[0]
-    else:
-        return eval_op(exc[mnid], getInfix(exc[:mnid]), getInfix(exc[mnid+1:]))
- 
-
-def getExpressionType(exc):
-    if isinstance(exc, str):
-        exc = split_exc(exc)
-    for func, typ in zip([getSuffix, getPrefix, getInfix], [SUFFIX, PREFIX, INFIX]):
-        temp = func(exc)
-        if not isinstance(temp, Exception):
-            return (typ, func)
-    return ValueError("parameter exc must be a expression")
-
-
-def reverse_expression(exc):
-    if isinstance(exc, str):
-        exc = split_exc(exc)
-    nw = []
-    for p in reversed(exc):
-        if p == "(":
-            p = ")"
-        elif p == ")":
-            p = "("
-        nw.append(p)
-    return nw
-
-
-def toPrefix(exc):
-    if isinstance(exc, str):
-        exc = split_exc(exc)
-    et, _ = getExpressionType(exc)
+def toPrefix(exp):
+    if isinstance(exp, str):
+        exp = split_exp(exp)
+    et, _ = getExpressionType(exp)
     if et == INFIX:
-        return reverse_expression(toSuffix(reverse_expression(exc)))
+        return reverse_expression(toSuffix(reverse_expression(exp)))
     elif et == PREFIX:
-        return exc
+        return exp
     else:
         stk = _Stk()
-        for p in exc:
+        for p in exp:
             if isdigit(p):
                 stk.push([p] + stk.pop() + stk.pop())
             else:
@@ -837,13 +837,14 @@ def toPrefix(exc):
         return stk.top
 
 
-class ExpressionType(_BTree):
-    def __init__(self, exc):
-        exc = toSuffix(exc)
+class Expression(_BTree):
+    def __init__(self, exp):
+        exp = toSuffix(exp)
+        self.exp = exp
         
 
 if __name__ == "__main__":
-    exc = "1.5 + 2 ** 4."
-    print(getInfix(exc))
-    print(toPrefix(exc))
-    print(toSuffix(exc))
+    exp = "1.5 + 2 ** 4."
+    print(getInfix(exp))
+    print(toPrefix(exp))
+    print(toSuffix(exp))
