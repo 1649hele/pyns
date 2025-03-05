@@ -2,6 +2,7 @@ import math as _math
 from decimal import Decimal as _Decimal
 from math import *
 import re as _re
+from copy import copy as _cpy
 try:
     from .func import lhas as _lhas, overload as _overload, rhas as _rhas
     from .structures import HashList as _HashList, BinaryTree as _BTree, Stack as _Stk, Queue as _Q
@@ -405,16 +406,17 @@ class Complex:
         return abs(complex(self))
     
     def __complex__(self):
-        return self.complex
+        return complex(self.complex)
     
     @_overload
     def __init__(self, __obj):
-        if isinstance(__obj, (Complex, complex, int, float)):
-            self.complex = __obj
-        elif isinstance(__obj, (list, tuple)):
+        if isinstance(__obj, (list, tuple)):
             self.__init__(*__obj)
         else:
-            raise TypeError("__obj must be comlex, str, int, float, list or tuple")
+            try:
+                self.complex = complex(__obj)
+            except:
+                raise TypeError("__obj must be comlex, str, int, float, list or tuple, not %s" % type(__obj))
         
     @_overload
     def __init__(self, angle, length):
@@ -430,12 +432,7 @@ class Complex:
         self.__init__((types, number), length)
     
     def __repr__(self):
-        return "%s object: \n\tangle: %s, \n\tlength:%s, \n= %s" % (
-            self.__class__.__name__,
-            self.angle,
-            self.length,
-            self.complex,
-        )
+        return str(self.complex)
     
     def __str__(self):
         return str(self.complex)
@@ -677,23 +674,33 @@ INFIX = "infix"
 
 
 def isdigit(s):
-    return _reg_d.match(s)
+    if isinstance(s, (float, int, complex, Complex)):
+        return True
+    return bool(_reg_d.match(s))
 
 
 def split_exc(exc):
-    temp = list(map(lambda p: p.strip(), _re.findall(reg_exc, exc)))
+    temp = _re.findall(reg_exc, exc)
+    for i in range(len(temp)):
+        temp[i] = temp[i].strip()
+        try:
+            temp[i] = temp[i].replace("i", "j").replace("I", "J")
+            temp[i] = Complex(temp[i])
+        except:
+            pass
     return temp
 
 
 def eval_op(op, a, b):
     try:
-        op, a, b = str(op), int(a), int(b)
+        op, a, b = str(op), Complex(a), Complex(b)
     except:
-        return ValueError("op,a,b parameters must be str,int,int")
+        return ValueError("op,a,b parameters must be str,complex,complex")
     return OPERATOR_FUNC[op](a, b)
 
 
 def getSuffix(exc):
+    exc = _cpy(exc)
     if isinstance(exc, str):
         exc = split_exc(exc)
     stk = _Stk()
@@ -724,8 +731,6 @@ def getPrefix(exc):
     for p in reversed(exc):
         if isdigit(p):
             stk.push(p)
-        elif stk.size < 2:
-            return None
         else:
             try:
                 stk.push(eval_op(p, stk.pop(), stk.pop()))
@@ -776,27 +781,60 @@ def getInfix(exc):
         exc = split_exc(exc)
     if exc[0] == "(" and exc[-1] == ")":
         return getInfix(exc[1:-1])
-    error_turn = ValueError("exc parameter must be a prefix")
+    error_turn = ValueError("exc parameter must be a infix")
     if len(exc) == 1 and not isdigit(exc[0]):
         return error_turn
     mn, mnid = 1e18, -1
-    for p, id in enumerate(exc):
+    for id, p in enumerate(exc):
         if not isdigit(p) and p not in ("(", ")") and mn > OPERATOR[p]:
             mn, mnid = OPERATOR[p], id
     if mnid == -1:
-        if len(exc) != -1:
+        if len(exc) > 1:
             return error_turn
-        return int(exc[0])
+        return exc[0]
     else:
         return eval_op(exc[mnid], getInfix(exc[:mnid]), getInfix(exc[mnid+1:]))
  
 
 def getExpressionType(exc):
+    if isinstance(exc, str):
+        exc = split_exc(exc)
     for func, typ in zip([getSuffix, getPrefix, getInfix], [SUFFIX, PREFIX, INFIX]):
         temp = func(exc)
         if not isinstance(temp, Exception):
-            return (func, typ)
+            return (typ, func)
     return ValueError("parameter exc must be a expression")
+
+
+def reverse_expression(exc):
+    if isinstance(exc, str):
+        exc = split_exc(exc)
+    nw = []
+    for p in reversed(exc):
+        if p == "(":
+            p = ")"
+        elif p == ")":
+            p = "("
+        nw.append(p)
+    return nw
+
+
+def toPrefix(exc):
+    if isinstance(exc, str):
+        exc = split_exc(exc)
+    et, _ = getExpressionType(exc)
+    if et == INFIX:
+        return reverse_expression(toSuffix(reverse_expression(exc)))
+    elif et == PREFIX:
+        return exc
+    else:
+        stk = _Stk()
+        for p in exc:
+            if isdigit(p):
+                stk.push([p] + stk.pop() + stk.pop())
+            else:
+                stk.append([p])
+        return stk.top
 
 
 class ExpressionType(_BTree):
@@ -805,5 +843,7 @@ class ExpressionType(_BTree):
         
 
 if __name__ == "__main__":
-    print(split_exc("1.5 + 2 ** 4."))
-    print(toSuffix("1.5 + 2 ** 4."))
+    exc = "1.5 + 2 ** 4."
+    print(getInfix(exc))
+    print(toPrefix(exc))
+    print(toSuffix(exc))

@@ -324,16 +324,7 @@ def overload_dummy(*funcs, raised=False):
                 return func(*args, **kwargs)
             except TypeError:
                 exc.append(_r.format_exc())
-        print("Traceback of overload", "Traceback (most recent call last):", "  ValueError: ", end="", sep="\n", file=_s.stderr)
-        print(funcs_parameter, file=_s.stderr)
-        try:
-            print("But your parameters is:", args, kwargs, file=_s.stderr)
-        except:
-            print("can't print", file=_s.stderr)
-        print("\n")
-        for e in exc:
-            print(e, "\n", file=_s.stderr)
-        exit(1)
+        raise Exception("\nTraceback of overload\nTraceback (most recent call last):\nValueError: %s" % funcs_parameter)
     return overloads
 
 
