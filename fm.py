@@ -1,6 +1,7 @@
-import math as _math
+import math as _math, cmath as _cmath
 from decimal import Decimal as _Decimal
 from math import *
+from cmath import *
 import re as _re
 from copy import copy as _cpy
 try:
@@ -17,10 +18,6 @@ def isEvenNumber(x):
 
 def isOddNumber(x):
     return x % 2 != 0
-
-
-def pow(x, _exp=2):
-    return _math.pow(x, _exp)
 
 
 prime = _HashList()
@@ -97,23 +94,6 @@ update_prime(1000)
 isEven = even = isEvenNumber
 isOdd  = odd  = isOddNumber
 
-
-def isint(x, ar=1e-4):
-    return abs(x - round(x)) <= ar
-
-
-def toint(x, ar=1e-4):
-    if isint(x, ar):
-        return int(x)
-    else:
-        return x
-
-
-def tointfloat(x, accuracy=1e6):
-    x *= accuracy
-    return toint(x) / accuracy
-
-
 Nmor  = (
     "个",
     "万",
@@ -162,11 +142,11 @@ def pronounce(x, s=_sbq, n=Ns, m=_nmor):
         ret = ""
         temp = str(temp).rjust(len(s), "0")
         for i in range(len(s)):
-            if temp[i] == "0":
+            if token == "0":
                 if ret == "" or  ret[-1] != n[0]:
                     ret += n[0]
             else:
-                ret += n[int(temp[i])]
+                ret += n[int(token)]
                 ret += s[i]
         if ret != n[0]:
             if _rhas(ret, n[0]):
@@ -259,10 +239,7 @@ class Angle:
     
     @degrees.setter
     def degrees(self, value):
-        if isint(value):
-            self._degrees = float(round(value))
-        else:
-            self._degrees = value
+        self._degrees = value
         self._degrees = fmod(self._degrees, 360)
     
     @property
@@ -312,9 +289,6 @@ class Angle:
         return tan(self.radians)
 
 
-epowi = e ** 1j
-
-
 @_overload
 def numbers(start, number, step=1):
     return range(start, number * step + start, step)
@@ -325,41 +299,12 @@ def numbers(number):
     return range(number)
 
 
-def epow(_exp, powi=False):
-    if powi:
-        return epowi ** _exp
-    else:
-        return pow(e, _exp)
-
-
 IMAG = "imag"
 REAL = "real"
 
 
 def eq(a, b, accuracy=1e-4):
     return abs(a-b) < accuracy
-
-
-def tocomplexint(x):
-    if x.imag == 0:
-        return toint(x.real)
-    x = 0
-    for toget in (IMAG, REAL):
-        temp = getattr(x, toget)
-        if isint(temp):
-            x += round(temp) * (1j if toget == IMAG else 1)
-    return x
-
-
-def tocomplexintfloat(x, accuracy=1e6):
-    if x.imag == 0:
-        return tointfloat(x.real)
-    x = 0
-    for toget in (IMAG, REAL):
-        temp = getattr(x, toget)
-        if isint(temp):
-            x += toint(temp * accuracy) / accuracy * (1j if toget == IMAG else 1)
-    return x
 
 
 class Complex:
@@ -383,11 +328,8 @@ class Complex:
         else:
             return type(other)(complex(other) - self.complex)
     
-    def epow(self):
+    def exp(self):
         return Complex(e ** self)
-    
-    def epowi(self):
-        return Complex(epowi ** self)
 
     def pow(self, other):
         other = Complex(other)
@@ -413,12 +355,15 @@ class Complex:
         if isinstance(__obj, (list, tuple)):
             self.__init__(*__obj)
             return
-        elif isinstance(__obj, str):
-            __obj = __obj.replace("i", "j").replace("I", "J")
+        if isinstance(__obj, str):
+            __obj = __obj.replace(" ", "")
+            __obj = __obj.replace("i", "j")
+            __obj = __obj.replace("I", "J")
+            __obj = __obj.replace("J", "j")
         try:
             self.complex = complex(__obj)
         except:
-            raise TypeError("__obj must be comlex, str, int, float, list or tuple, not %s" % type(__obj))
+            raise TypeError("__obj must be comlex, str, int, float, list or tuple, not %s" % type(__obj)) from None
         
     @_overload
     def __init__(self, angle, length):
@@ -431,7 +376,7 @@ class Complex:
     
     @_overload
     def __init__(self, types, number, length):
-        self.__init__((types, number), length)
+        self.__init__(Angle(types, number), length)
     
     def __repr__(self):
         return str(self.complex)
@@ -477,39 +422,37 @@ class Complex:
     
     @property
     def imag(self):
-        return tointfloat(self.complex.imag)
+        return self.complex.imag
     
     @imag.setter
     def imag(self, value):
         if isinstance(value, (complex, Complex)):
-            self.complex = (self.real, tointfloat(value.real))
+            self.complex = (self.real, value.real)
             return
-        value = tointfloat(value)
         self.complex = (self.real, value)
     
     @property
     def real(self):
-        return tointfloat(self.complex.real)
+        return self.complex.real
     
     @real.setter
     def real(self, value):
         if isinstance(value, (complex, Complex)):
-            self.complex = (tointfloat(value.real), tointfloat(self.imag))
+            self.complex = (value.real, self.imag)
             return
-        value = tointfloat(value)
+        value = value
         self.complex = (value, self.imag)
     
     @property
     def complex(self):
-        return tocomplexintfloat(self.length * epow(self.angle.radians, True))
+        return self.length * exp(self.angle.radians * 1j)
     
     @complex.setter
     def complex(self, value):
         if isinstance(value, (list, tuple)):
             value = value[0] + value[1] * 1j
         value = complex(value)
-        value = tocomplexintfloat(value)
-        self.length = tointfloat(abs(value))
+        self.length = abs(value)
         c = self.length
         a = value.real
         b = value.imag
@@ -543,7 +486,7 @@ class Complex:
 
 class Decimal(_Decimal):
     def __init__(self, number):
-        super().__new__(self.__class__, tointfloat(float(number)))
+        super().__new__(self.__class__, float(number))
 
 
 TWO_WAY = "two-way"
@@ -665,8 +608,8 @@ OPERATOR_FUNC = {"log": log}
 for op in OPERATOR.keys():
     if op not in ("(", ")", "log"):
         OPERATOR_FUNC[op] = eval("lambda a, b: a %s b" % op)
-reg_d = r"[+-]*\s*(\d+(?:\.\d*)?|\.\d+)"
-reg_d = r"%s(?:[+-]%s[IJij])?"
+reg_d = r"[+-]*\s*(?:\d+(?:\.\d*)?|\.\d*)"
+reg_d = r"%s(?:[+-]%s[IJij])?" % (reg_d, reg_d)
 reg_exp = r"\s*(%s|(?:\*\*| log )|(?:\*|/{1,2})|[+-]|[()])\s*" % reg_d
 _reg_d = _re.compile(reg_d)
 SUFFIX = "suffix"
@@ -682,13 +625,24 @@ def isdigit(s):
 
 def split_exp(exp):
     temp = _re.findall(reg_exp, exp)
-    for i in range(len(temp)):
-        temp[i] = temp[i].strip()
+    nw = []
+    for token in temp:
+        if not token:
+            continue
         try:
-            temp[i] = Complex(temp[i])
+            if token == ".":
+                token = 0
+            token = Complex(token)
         except:
             pass
-    return temp
+        if len(nw) and isinstance(nw[-1], Complex) and isinstance(token, Complex):
+            nw.append("+")
+        nw.append(token)
+    return nw
+
+
+def join_exp(exp):
+    return "".join(map(lambda token: str(token), exp))
 
 
 def eval_op(op, a, b):
@@ -703,35 +657,30 @@ def reverse_expression(exp):
     if isinstance(exp, str):
         exp = split_exp(exp)
     nw = []
-    for p in reversed(exp):
-        if p == "(":
-            p = ")"
-        elif p == ")":
-            p = "("
-        nw.append(p)
+    for token in reversed(exp):
+        if token == "(":
+            token = ")"
+        elif token == ")":
+            token = "("
+        nw.append(token)
     return nw
 
 
 def getSuffix(exp):
-    exp = _cpy(exp)
     if isinstance(exp, str):
         exp = split_exp(exp)
     stk = _Stk()
     error_turn = ValueError("exp parameter must be a suffix")
-    while len(exp) > 1:
-        p = exp.pop()
-        if isdigit(p):
-            try:
-                stk.top.append(p)
-            except:
-                return error_turn
-            if len(stk.top) == 2:
-                exp.append(eval_op(*stk.top))
-                stk.pop()
+    for token in exp:
+        if isdigit(token):
+            stk.push(token)
         else:
-            stk.push([p])
-    if stk.empty():
-        return exp[0]
+            if len(stk) >= 2:
+                stk.push(eval_op(token, stk.pop(), stk.pop()))
+            else:
+                return error_turn
+    if stk.size == 1:
+        return stk.top
     else:
         return error_turn
 
@@ -741,12 +690,12 @@ def getPrefix(exp):
         exp = split_exp(exp)
     stk = _Stk()
     error_turn = ValueError("exp parameter must be a prefix")
-    for p in reversed(exp):
-        if isdigit(p):
-            stk.push(p)
+    for token in reversed(exp):
+        if isdigit(token):
+            stk.push(token)
         else:
             try:
-                stk.push(eval_op(p, stk.pop(), stk.pop()))
+                stk.push(eval_op(token, stk.pop(), stk.pop()))
             except:
                 return error_turn
     if stk.size > 1:
@@ -764,9 +713,9 @@ def getInfix(exp):
     if len(exp) == 1 and not isdigit(exp[0]):
         return error_turn
     mn, mnid = 1e18, -1
-    for id, p in enumerate(exp):
-        if not isdigit(p) and p not in ("(", ")") and mn >= OPERATOR[p]:
-            mn, mnid = OPERATOR[p], id
+    for id, token in enumerate(exp):
+        if not isdigit(token) and token not in ("(", ")") and mn >= OPERATOR[token]:
+            mn, mnid = OPERATOR[token], id
     if mnid == -1:
         if len(exp) > 1:
             return error_turn
@@ -793,11 +742,11 @@ def toSuffix(exp):
         raise et
     if et == PREFIX:
         stk = _Stk()
-        for p in reversed(exp):
-            if isdigit(p):
-                stk.push([p])
+        for token in reversed(exp):
+            if isdigit(token):
+                stk.push([token])
             else:
-                stk.push([stk.pop(), stk.pop(), p])
+                stk.push([stk.pop(), stk.pop(), token])
         return list(stk)
     elif et == SUFFIX:
         return exp
@@ -805,13 +754,13 @@ def toSuffix(exp):
         output = []
         stk = _Stk()
         stk.push("(")
-        for p in exp + [")"]:
-            if isdigit(p):
-                output.append(p)
-            elif p != ")":
-                while not stk.empty() and OPERATOR[stk.top] > OPERATOR[p]:
+        for token in exp + [")"]:
+            if isdigit(token):
+                output.append(token)
+            elif token != ")":
+                while not stk.empty() and OPERATOR[stk.top] > OPERATOR[token]:
                     output.append(stk.pop())
-                stk.push(p)
+                stk.push(token)
             else:
                 while stk.top != "(":
                     output.append(stk.pop())
@@ -829,22 +778,38 @@ def toPrefix(exp):
         return exp
     else:
         stk = _Stk()
-        for p in exp:
-            if isdigit(p):
-                stk.push([p] + stk.pop() + stk.pop())
+        for token in exp:
+            if isdigit(token):
+                stk.push([token] + stk.pop() + stk.pop())
             else:
-                stk.append([p])
+                stk.append([token])
         return stk.top
+
+
+def toInfix(exp):
+    if isinstance(exp, str):
+        exp = split_exp(exp)
+    exp = toSuffix(exp)
+    stk = _Stk()
+    for token in exp:
+        if isdigit(token):
+            stk.push([token])
+        else:
+            b = stk.pop()
+            a = stk.pop()
+            stk.push(["(", *a, token, *b, ")"])
+    return stk.top
 
 
 class Expression(_BTree):
     def __init__(self, exp):
         exp = toSuffix(exp)
         self.exp = exp
-        
+
 
 if __name__ == "__main__":
-    exp = "1.5 + 2 ** 4."
+    exp = "1.5+1i + 2 ** 4."
     print(getInfix(exp))
-    print(toPrefix(exp))
-    print(toSuffix(exp))
+    print(join_exp(toPrefix(exp)))
+    print(join_exp(toSuffix(exp)))
+    print(join_exp(toInfix(toSuffix(exp))))
