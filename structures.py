@@ -325,25 +325,21 @@ class Tree(Diagram):
     def __setitem__(self, key, value):
         if key == 0:
             self._obj = value
-        if self[key].father is self:
+        if self[key] is not None and self[key].father is self:
             self[key].father = None
         if value is None:
             return
         if not isinstance(value, self.__class__):
-            if isinstance(self, _EBTree):
-                temp, value = value, self.__class__(self.key)
-                value.append(temp)
-            else:
-                value = self.__class__(self._x, value)
+            value = self.__class__(self._x, value)
         value.father = self
-        if item >= self._x:
+        if key > self._x:
             self[getfather(self._x, key)][getsonindex(self._x, key)] = value
         else:
             self._trees[key] = value
     
     def __delitem__(self, key):
         self[key] = None
-    
+
     
 def _mp(key, index):
     if key == "set":
@@ -385,24 +381,25 @@ class BinaryTree(Tree):
     
     def inorder(self):
         if not self:
-            print(id(self))
             return ()
         temp = ()
-        if self._trees[0] is not None:
-            temp += self.left.inordertraversal()
+        left = self.left
+        if left:
+            temp += left.inorder()
         temp += (self.head,)
-        if self._trees[1] is not None:
-            temp += self.right.inordertraversal()
+        right = self.right
+        if right:
+            temp += right.inorder()
         return temp
     
     def postorder(self):
         temp = ()
         left = self.left
         if left:
-            temp += left.postordertraversal()
+            temp += left.postorder()
         right = self.right
         if right:
-            temp += right.postordertraversal()
+            temp += right.postorder()
         temp += (self.head, )
         return temp
 
@@ -773,11 +770,11 @@ class Avl:
     def preorder(self):
         return self._avl.preorder()
     
-    def postorder(self):
-        return self._avl.postordertraversal()
-    
     def inorder(self):
         return self._avl.inorder()
+    
+    def postorder(self):
+        return self._avl.postorder()
     
     def __iter__(self):
         return self._avl.__iter__()
@@ -836,15 +833,6 @@ class Avl:
     def wide(self):
         return self._avl.wide
     
-    def __subclasscheck__(self, subclass):
-        return\
-            isinstance(super(self.__class__, self), subclass) or \
-            issubclass(_Avl, subclass) or \
-            type(subclass) is self.__class__
-    
-    def __instancecheck__(self, instance):
-        return issubclass(self.__class__, type(instance))
-    
 
 class ImmutableObject:
     __count = _Count(0)
@@ -885,4 +873,3 @@ def treeToTuple(tree):
             temp[-1].append(tree[j])
         temp[-1] = tuple(temp[-1])
     return tuple(temp)
-

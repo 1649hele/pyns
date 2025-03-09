@@ -1,4 +1,3 @@
-import functools
 import inspect as _i
 import os as _o
 import sys as _s
@@ -324,11 +323,24 @@ def overload_dummy(*funcs, raised=False):
                 return func(*args, **kwargs)
             except TypeError:
                 exc.append(_r.format_exc())
-        raise Exception("\nTraceback of overload\nTraceback (most recent call last):\nValueError: %s" % funcs_parameter)
+        try:
+            raise_type = "\n".join(
+                ["",
+                 *exc,
+                 funcs_parameter,
+                 "but your parameter is: args:%s, kwargs:%s" % (args, kwargs)]
+            )
+        except:
+            raise_type = "\n".join(
+                ["",
+                 *exc,
+                 funcs_parameter]
+            )
+        raise ValueError(raise_type) from None
     return overloads
 
 
-_overloads = _defaultdict(functools.partial(_defaultdict, tuple))
+_overloads = _defaultdict(_tools.partial(_defaultdict, tuple))
 
 
 def has_overloads(func):

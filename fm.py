@@ -310,6 +310,11 @@ def eq(a, b, accuracy=1e-4):
 
 
 class Complex:
+    def __instancecheck__(self, instance):
+        if isinstance(instance, complex):
+            return True
+        return issubclass(type(instance), self.__class__)
+    
     def __add__(self, other):
         other = Complex(other)
         return Complex(self.complex + other.complex)
@@ -643,14 +648,14 @@ def split_exp(exp):
 
 
 def join_exp(exp):
-    return "".join(map(lambda token: str(token), exp))
+    return " ".join(map(lambda token: str(token), exp))
 
 
 def eval_op(op, a, b):
     try:
         op, a, b = str(op), Complex(a), Complex(b)
     except:
-        return ValueError("op,a,b parameters must be str,complex,complex")
+        return TypeError("op,a,b parameters must be str,complex,complex")
     return OPERATOR_FUNC[op](a, b)
 
 
@@ -671,7 +676,7 @@ def getSuffix(exp):
     if isinstance(exp, str):
         exp = split_exp(exp)
     stk = _Stk()
-    error_turn = ValueError("exp parameter must be a suffix")
+    error_turn = TypeError("exp parameter must be a suffix")
     for token in exp:
         if isdigit(token):
             stk.push(token)
@@ -690,7 +695,7 @@ def getPrefix(exp):
     if isinstance(exp, str):
         exp = split_exp(exp)
     stk = _Stk()
-    error_turn = ValueError("exp parameter must be a prefix")
+    error_turn = TypeError("exp parameter must be a prefix")
     for token in reversed(exp):
         if isdigit(token):
             stk.push(token)
@@ -742,7 +747,7 @@ def getInfix(exp):
         exp = split_exp(exp)
     if exp[0] == "(" and exp[-1] == ")":
         return getInfix(exp[1:-1])
-    error_turn = ValueError("exp parameter must be a infix")
+    error_turn = TypeError("exp parameter must be a infix")
     if len(exp) == 1 and not isdigit(exp[0]):
         return error_turn
     mn, mnid = 1e18, -1
@@ -771,7 +776,7 @@ def getExpressionType(exp):
         temp = func(_cpy(exp))
         if not isinstance(temp, Exception):
             return (typ, func)
-    return ValueError("parameter exp must be a expression")
+    return TypeError("parameter exp must be a expression")
 
 
 def toSuffix(exp):
@@ -844,9 +849,64 @@ def toInfix(exp):
 
 
 class Expression(_BTree):
+    @_overload
+    def __init__(self, point, left, right):
+        super(Expression, self).__init__(point)
+        if not isinstance(left, self.__class__):
+            left = self.__class__(left)
+        if not isinstance(right, self.__class__):
+            right = self.__class__(right)
+        self.left = left
+        self.right = right
+    
+    @_overload
+    def __init__(self, __obj):
+        if not isinstance(__obj, _BTree):
+            raise TypeError("__obj parameter must be BinaryTree")
+        super(Expression, self).__init__(_cpy(__obj.head))
+        self.left = __obj.left.copy()
+        self.right = __obj.right.copy()
+    
+    def copy(self):
+        if self.left is not None:
+            nw = Expression(_cpy(self.head), self.left.copy(), self.right.copy())
+        else:
+            nw = Expression(_cpy(self.head))
+        return nw
+    
+    @_overload
     def __init__(self, exp):
+        if isinstance(exp, Complex):
+            super(Expression, self).__init__(Complex(exp))
+            return
         exp = toSuffix(exp)
-        self.exp = exp
+        super(Expression, self).__init__(exp)
+        stk = _Stk()
+        for token in exp:
+            if isinstance(token, Complex):
+                stk.push(Expression(token))
+            else:
+                b, a = stk.pop(), stk.pop()
+                stk.push(Expression(token, a, b))
+        self.__init__(stk.top)
+        
+    def __repr__(self):
+        return str(join_exp(self.getExpression((INFIX))))
+    
+    def inorder(self):
+        # 括号
+        return
+    
+    def getExpression(self, typ):
+        match typ:
+            case "infix":
+                return self.inorder()
+            case "suffix":
+                return self.postorder()
+            case "prefix":
+                return self.preorder()
+            case UnkownType:
+                raise TypeError("typ parameter most be infix, suffix or prefix, not %s" % UnkownType)
 
 
 if __name__ == "__main__":
@@ -858,3 +918,7 @@ if __name__ == "__main__":
     temp = toInfix(toSuffix(_exp))
     print(join_exp(temp))
     print(join_exp(Sinfix(temp)))
+    print()
+    _exptree = Expression(_exp)
+    for typ in [INFIX, SUFFIX, PREFIX]:
+        print(_exptree.getExpression(typ))
