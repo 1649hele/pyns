@@ -230,8 +230,10 @@ class Angle:
     def __init__(self, types, number):
         if types == DEGREES:
             self.degrees = number
+        elif isinstance(number, complex) and number.imag != 0:
+            raise TypeError("number parameter must be float")
         else:
-            self.degrees = degrees(number)
+            self.degrees = degrees(number.real)
     
     @property
     def degrees(self):
@@ -259,8 +261,8 @@ class Angle:
     def __int__(self):
         return int(float(self))
     
-    def __str__(self):
-        return "%.2f°" % (int(self) if isint(self.degrees) else float(self))
+    def __repr__(self):
+        return "%.2f°" % float(self)
     
     def __add__(self, other):
         return Angle(DEGREES, self.degrees + other.degrees)
@@ -381,9 +383,6 @@ class Complex:
     def __repr__(self):
         return str(self.complex)
     
-    def __str__(self):
-        return str(self.complex)
-    
     @property
     def angle(self):
         return self._angle
@@ -391,7 +390,9 @@ class Complex:
     @angle.setter
     def angle(self, value):
         if isinstance(value, Angle):
-            if isinstance(value.radians, (complex, Complex)):
+            if isinstance(value.radians, (int, float)):
+                self._angle = value
+            elif isinstance(value.radians, (complex, Complex)):
                 r = value.radians
                 r = complex(r)
                 length = e ** - r.imag
@@ -635,7 +636,7 @@ def split_exp(exp):
             token = Complex(token)
         except:
             pass
-        if len(nw) and isinstance(nw[-1], Complex) and isinstance(token, Complex):
+        if len(nw) and isdigit(nw[-1]) and isdigit(token):
             nw.append("+")
         nw.append(token)
     return nw
@@ -704,6 +705,38 @@ def getPrefix(exp):
         return stk.top
 
 
+def Sinfix(exp):
+    if isinstance(exp, str):
+        exp = split_exp(exp)
+    if isinstance(getInfix(exp), Exception):
+        return getInfix(exp)
+    stk = _Stk()
+    nw = []
+    i = 0
+    mn = 1e18
+    for token in exp:
+        if token == "(":
+            stk.push(i)
+            mn = 1e18
+        elif token == ")":
+            l = stk.pop()
+            if l != 0 and mn < OPERATOR[nw[l-1]]:
+                i += 2
+                nw.insert(l, "(")
+                nw.append(")")
+            mn = 1e18
+            if not stk.empty():
+                for tok in nw[stk.top+1:l]:
+                    mn = min(mn, OPERATOR[tok])
+        else:
+            i += 1
+            if not isdigit(token):
+                mn = min(OPERATOR[token], mn)
+            nw.append(token)
+            
+    return nw
+
+
 def getInfix(exp):
     if isinstance(exp, str):
         exp = split_exp(exp)
@@ -713,22 +746,29 @@ def getInfix(exp):
     if len(exp) == 1 and not isdigit(exp[0]):
         return error_turn
     mn, mnid = 1e18, -1
-    for id, token in enumerate(exp):
-        if not isdigit(token) and token not in ("(", ")") and mn >= OPERATOR[token]:
+    _iter = enumerate(exp)
+    for id, token in _iter:
+        if token == "(":
+            while token != ")":
+                id, token = next(_iter)
+        if not isdigit(token) and token != ")" and mn >= OPERATOR[token]:
             mn, mnid = OPERATOR[token], id
     if mnid == -1:
         if len(exp) > 1:
             return error_turn
         return exp[0]
     else:
-        return eval_op(exp[mnid], getInfix(exp[:mnid]), getInfix(exp[mnid+1:]))
+        a = getInfix(exp[:mnid])
+        b = getInfix(exp[mnid+1:])
+        # print(a, b)
+        return eval_op(exp[mnid], a, b)
 
 
 def getExpressionType(exp):
     if isinstance(exp, str):
         exp = split_exp(exp)
     for func, typ in zip([getSuffix, getPrefix, getInfix], [SUFFIX, PREFIX, INFIX]):
-        temp = func(exp)
+        temp = func(_cpy(exp))
         if not isinstance(temp, Exception):
             return (typ, func)
     return ValueError("parameter exp must be a expression")
@@ -757,8 +797,10 @@ def toSuffix(exp):
         for token in exp + [")"]:
             if isdigit(token):
                 output.append(token)
+            elif token == "(":
+                stk.push(token)
             elif token != ")":
-                while not stk.empty() and OPERATOR[stk.top] > OPERATOR[token]:
+                while not stk.empty() and OPERATOR[stk.top] >= OPERATOR[token]:
                     output.append(stk.pop())
                 stk.push(token)
             else:
@@ -808,8 +850,11 @@ class Expression(_BTree):
 
 
 if __name__ == "__main__":
-    exp = "1.5+1i + 2 ** 4."
-    print(getInfix(exp))
-    print(join_exp(toPrefix(exp)))
-    print(join_exp(toSuffix(exp)))
-    print(join_exp(toInfix(toSuffix(exp))))
+    _exp = "1.5+1i + 2 ** (4.+2)"
+    print(_exp)
+    print(getInfix(_exp))
+    print(join_exp(toPrefix(_exp)))
+    print(join_exp(toSuffix(_exp)))
+    temp = toInfix(toSuffix(_exp))
+    print(join_exp(temp))
+    print(join_exp(Sinfix(temp)))
