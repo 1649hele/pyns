@@ -4,9 +4,9 @@ import os as _o
 import typing as _t
 import _io
 try:
-    import structures, fm, func, flat_gui, sound, file, screen, translate, win, stereoscopic_gui, iter, module
+    import structures, fm, func, flat_gui, sound, file, screen, network, win, stereoscopic_gui, iter, module
 except ImportError:
-    from . import structures, fm, func, flat_gui, sound, file, screen, translate, win, stereoscopic_gui, iter, module
+    from . import structures, fm, func, flat_gui, sound, file, screen, network, win, stereoscopic_gui, iter, module
 
 
 class char:

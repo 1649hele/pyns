@@ -894,8 +894,15 @@ class Expression(_BTree):
         return str(join_exp(self.getExpression((INFIX))))
     
     def inorder(self):
-        # 括号
-        return
+        turn = ()
+        left = self.left
+        if left:
+            turn += ("(", *left.inorder(), ")")
+        turn += (self.head,)
+        right = self.right
+        if right:
+            turn += ("(", *right.inorder(), ")")
+        return turn
     
     def getExpression(self, typ):
         match typ:

@@ -17,7 +17,7 @@ try:
     from .func import overload as _overload
     from .iter import fill as _fill, flatten as _flatten
     from .structures import Stack as _Stk
-    from .translate import (
+    from .network import (
         CHINESE as _c, ERRORCODE as _r, idlang as _il, toPinyin as _tp,
     )
 except ImportError:
@@ -26,7 +26,7 @@ except ImportError:
     from func import overload as _overload
     from iter import fill as _fill, flatten as _flatten
     from structures import Stack as _Stk
-    from translate import (
+    from network import (
         CHINESE as _c, ERRORCODE as _r, idlang as _il, toPinyin as _tp,
     )
 
