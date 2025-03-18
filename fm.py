@@ -12,6 +12,14 @@ except ImportError:
     from structures import HashList as _HashList, BinaryTree as _BTree, Stack as _Stk, Queue as _Q
 
 
+def sqrt(x):
+    temp = _cmath.sqrt(x)
+    if temp.imag == 0:
+        return temp.real
+    else:
+        return Complex(temp)
+
+
 def isEvenNumber(x):
     return x % 2 == 0
 
@@ -61,7 +69,7 @@ def isPrime(x):
         return True
     elif x in composite:
         return False
-    for i in range(102, int(sqrt(x))):
+    for i in range(2, int(sqrt(x))):
         if x % i == 0:
             composite.append(x)
             return False

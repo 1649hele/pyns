@@ -23,7 +23,7 @@ def change_display_file(file, display):
 
 
 def keywords(file):
-    from pyms.url import translate, ENGLISH
+    from pyms.network import translate_text, ENGLISH
     if "\\" in file or "/" in file:
         return _os.path.abspath(file)
     t = translate(file, _to=ENGLISH, autolang=False)[0]
