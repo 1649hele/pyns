@@ -8,7 +8,7 @@ setup(
     description='',
     long_description='',
     long_description_content_type='',
-    url='https://github.com/1649hele/pyns',
+    url='https://github.com/1649hele/pyms',
     packages=find_packages(),
     classifiers=[
         'Programming Language :: Python :: 3',

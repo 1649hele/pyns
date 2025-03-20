@@ -1,5 +1,6 @@
 from typing import List
 
+userfile: str
 def change_display_file(file: str, display: bool) -> None:...
 def keywords(file: str) -> str:...
 def seek(
