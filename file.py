@@ -7,6 +7,8 @@ except ImportError:
 
 
 userfile = _os.path.expanduser("~")
+if not _os.path.exists(userfile + r"\Desktop"):
+    userfile += r"\OneDrive"
 
 
 def change_display_file(file, display):
