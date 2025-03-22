@@ -213,7 +213,7 @@ def getfather(x, son):
 
 
 def getson(x, father):
-    return (father - 1) * x + 2
+    return (father - 1) * x + 3
 
 
 def getsonindex(x, son):
@@ -222,7 +222,11 @@ def getsonindex(x, son):
 
 class Tree(Diagram):
     def __bool__(self):
-        return self._obj is not None
+        return self._obj is not None or any(self._trees)
+    
+    @property
+    def size(self):
+        return len(self)
     
     def __len__(self):
         return sum(
@@ -241,8 +245,8 @@ class Tree(Diagram):
                     temp.extend(iter(tree))
         return iter(temp)
     
-    def __str__(self):
-        return str(tuple(self))
+    def __repr__(self):
+        return formatTree(self)
     
     @property
     def head(self):
@@ -288,6 +292,10 @@ class Tree(Diagram):
         temp.swap(self)
         return temp
     
+    @property
+    def son(self):
+        return tuple(self._trees)
+    
     def clear(self):
         self._trees = [None] * (self._x + 1)
         self._obj = None
@@ -299,12 +307,6 @@ class Tree(Diagram):
         for i in range(1, self._x + 1):
             self._trees[i] = tree[i].copy()
     
-    def __get__(self, instance, owner):
-        return self._obj
-    
-    def __set__(self, instance, value):
-        self._obj = value
-    
     def __getattr__(self, item):
         if item == "_obj":
             return getattr(super(Tree, self), item)
@@ -312,7 +314,7 @@ class Tree(Diagram):
     
     def __getitem__(self, item):
         if item == 0:
-            return self._obj
+            return self
         if item > self._x:
             temp = self[getfather(self._x, item)][getsonindex(self._x, item)]
         else:
@@ -798,28 +800,16 @@ class Avl:
         self._avl.__delitem__(key)
     
     @property
-    def left(self):
-        return self._avl.left
+    def size(self):
+        return self._avl.size
     
-    @left.setter
-    def left(self, value):
-        self._avl.left = value
+    def copy(self):
+        nw = Avl(self.key)
+        nw.extend(tuple(self))
+        return nw
     
-    @left.deleter
-    def left(self):
-        del self._avl.left
-    
-    @property
-    def right(self):
-        return self._avl.left
-    
-    @right.setter
-    def right(self, value):
-        self._avl.left = value
-    
-    @right.deleter
-    def right(self):
-        del self._avl.left
+    def __copy__(self):
+        return self.copy()
     
     @property
     def height(self):
@@ -831,17 +821,32 @@ class Avl:
     
     @property
     def wide(self):
-        return self._avl.wide
-    
+        return 2
 
-class ImmutableObject:
+
+def Immutable(obj):
+    if not hasattr(obj, "__hash__"):
+        temp = next(ImmutableType.__count)
+        obj.__hash__ = lambda self: temp
+    if not hasattr(obj, "__instancecheck__"):
+        obj.__instancecheck__ = lambda self, instance: (
+                isinstance(ImmutableObject, instance) or
+                issubclass(cls, instance)
+        )
+    return obj
+
+
+class ImmutableType(type):
     __count = _Count(0)
     
-    def __init__(self):
-        self.__hash = next(ImmutableObject.__count)
-    
-    def __hash__(self):
-        return self.__hash
+    def __new__(cls, *args, **kwargs):
+        nw = super().__new__(cls, *args, **kwargs)
+        nw = Immutable(nw)
+        return nw
+
+
+class ImmutableObject(metaclass=ImmutableType):
+    pass
 
 
 class HashList:
@@ -852,7 +857,7 @@ class HashList:
     def add(self, *adds):
         adds = _fl(adds)
         for obj in adds:
-            self._dict[hash(obj)] = True
+            self._dict[hash(obj)] = obj
     
     def has(self, has):
         return has in self._dict
@@ -873,3 +878,24 @@ def treeToTuple(tree):
             temp[-1].append(tree[j])
         temp[-1] = tuple(temp[-1])
     return tuple(temp)
+
+
+def formatTree(tree):
+    nw = []
+    for i in range(tree.size):
+        if tree[i]:
+            st = getson(tree.wide, i)
+            nw.append(f"{i}: head,{tree[i].head}; son,{list(range(st, st + tree.wide))}")
+    return nw
+
+
+if __name__ == "__main__":
+    avl = Avl()
+    l = list(range(11))
+    import random
+    random.shuffle(l)
+    for x in l:
+        avl.append(x)
+        print(x)
+    print(*formatTree(avl), sep="\n")
+    print(avl.inorder(), avl.count(1))
