@@ -1,13 +1,15 @@
 try:
-    from iter import flatten as _fl, toTuple as _tT
-    from func import Count as _Count
+    from iter import flatten
+    from file import get_random_filename
 except ModuleNotFoundError:
-    from .iter import flatten as _fl, toTuple as _tT
-    from .func import Count as _Count
-import sys as _sys
+    from .iter import flatten
+    from file import get_random_filename
+import sys
+from graphviz import Digraph
+from PIL import Image
 
 
-_sys.set_coroutine_origin_tracking_depth(10000)
+sys.set_coroutine_origin_tracking_depth(10000)
 
 
 def pow(base, __x=2):
@@ -34,13 +36,16 @@ class _Node:
         del self._obj
     
     def __getattribute__(self, item):
-        if item in ("copy", "add", "remove", "__get__", "__set__", "__del__", "__init__"):
+        if item in (
+                "copy", "add", "remove", "__get__", "__set__", "__del__",
+                "__init__"):
             return super(_Node, self).__getattribute__(item)
         else:
             return getattr(self._obj, item)
     
     def copy(self):
         import copy
+        
         return self.__class__(copy.copy(self._obj), self._connect.copy())
     
     def add(self, *nodes):
@@ -51,11 +56,15 @@ class _Node:
     
     def _aor(self, key, args):
         def succes(arg):
-            if (arg in self._connect and self in arg._connect) or key == "append":
+            if ((
+                    arg in self._connect and self in arg._connect) or
+                    key == "append"):
                 getattr(self._connect, key)(arg)
                 getattr(arg._connect, key)(self)
             else:
-                raise ValueError("arg must be in self and self must be in arg")
+                raise ValueError(
+                    "arg must be in self and self must be in arg"
+                )
         
         def fail():
             raise TypeError(
@@ -64,6 +73,7 @@ class _Node:
             )
         
         from typing import Iterable
+        
         for arg in args:
             if isinstance(arg, _Node):
                 succes(arg)
@@ -124,6 +134,7 @@ class Diagram:
                 raise ValueError("arg must be in self")
         
         from typing import Iterable
+        
         for arg in args:
             if isinstance(arg, _Node):
                 succes(arg)
@@ -167,6 +178,7 @@ class Diagram:
             for v in x._connect:
                 temp.extend(dfs(v))
             return temp
+        
         return dfs(start)
     
     def breadthfirstsearch(self, start):
@@ -187,6 +199,17 @@ class Diagram:
     
     def __bool__(self):
         return bool(self.points)
+    
+    @property
+    def image(self):
+        graph = Digraph("The Diagram")
+        for i in range(self.points):
+            graph.node(i, self.points[i]._obj)
+            for to in self.points[i]._connect:
+                graph.edges(i, to)
+        name = get_random_filename()
+        graph.render(name, format="png", cleanup=True)
+        return Image.open(f"{name}.png")
 
 
 class TreeError(Exception):
@@ -196,13 +219,17 @@ class TreeError(Exception):
 class EmptyError(Exception):
     def __init__(self, arg):
         super(EmptyError, self).__init__(
-            "the %s object is empty, it can't be empty" % arg.__class__.__name__)
+            "the %s object is empty, it can't be empty" %
+            arg.__class__.__name__
+        )
 
 
 class TreeEmptyError(TreeError, EmptyError):
     def __init__(self, arg):
         if not issubclass(arg, Tree):
-            raise TypeError("the arg of TreeEmptyError must be Tree subclass")
+            raise TypeError(
+                "the arg of TreeEmptyError must be Tree subclass"
+            )
         EmptyError.__init__(self, arg)
 
 
@@ -236,6 +263,16 @@ class Tree(Diagram):
             )
         ) + int(self.head is not None)
     
+    @property
+    def max_index(self):
+        for i in range(
+            (self.wide ** self.height - 1) // (self.wide - 1) - 1, -1,
+            -1
+        ):
+            if self[i]:
+                return i
+        return -1
+    
     def __iter__(self):
         temp = []
         if self.head is not None:
@@ -244,9 +281,6 @@ class Tree(Diagram):
                 if tree is not None:
                     temp.extend(iter(tree))
         return iter(temp)
-    
-    def __repr__(self):
-        return formatTree(self)
     
     @property
     def head(self):
@@ -262,6 +296,14 @@ class Tree(Diagram):
     
     @property
     def height(self):
+        ans = 0
+        for tree in self._trees:
+            if tree:
+                ans = max(ans, tree.height)
+        return ans + 1
+    
+    @property
+    def depth(self):
         return self._h + 1
     
     @property
@@ -273,10 +315,11 @@ class Tree(Diagram):
         if self._father is not None:
             self._father._h = self.__h
         self._father = value
-        self.__h = self._father.height
-        if value.height > self._h:
-            self._h = value.height
-
+        if value:
+            self.__h = value.depth
+            if value.depth > self._h:
+                self._h = value.depth
+    
     def __init__(self, x, point):
         if point is None and not isinstance(self, _EBTree):
             raise TreeEmptyError(self.__class__)
@@ -303,7 +346,7 @@ class Tree(Diagram):
     def swap(self, tree):
         self._x = tree.wide
         self._obj = tree.head
-        self._h = tree.height
+        self._h = tree.depth
         for i in range(1, self._x + 1):
             self._trees[i] = tree[i].copy()
     
@@ -316,7 +359,8 @@ class Tree(Diagram):
         if item == 0:
             return self
         if item > self._x:
-            temp = self[getfather(self._x, item)][getsonindex(self._x, item)]
+            temp = self[getfather(self._x, item)][
+                getsonindex(self._x, item)]
         else:
             temp = self._trees[item]
             if temp is None and isinstance(self, _EBTree):
@@ -335,14 +379,39 @@ class Tree(Diagram):
             value = self.__class__(self._x, value)
         value.father = self
         if key > self._x:
-            self[getfather(self._x, key)][getsonindex(self._x, key)] = value
+            self[getfather(self._x, key)][
+                getsonindex(self._x, key)] = value
         else:
             self._trees[key] = value
     
     def __delitem__(self, key):
         self[key] = None
-
     
+    def set(self, old, new):
+        for i in range(self.wide + 1):
+            if not self._trees[i]:
+                continue
+            if self._trees[i] is old:
+                self._trees[i] = new
+                new.father = old.father
+                return True
+            elif self._trees[i].set(old, new):
+                return True
+        return False
+    
+    @property
+    def image(self):
+        gragh = Digraph()
+        for i in range(self.max_index+1):
+            if self[i]:
+                gragh.node(str(i), str(self[i].head))
+                if i:
+                    gragh.edge(str((i-1)//2), str(i))
+        name = get_random_filename()
+        gragh.render(name, format="png")
+        return Image.open(f"{name}.png")
+
+
 def _mp(key, index):
     if key == "set":
         return lambda self, value: self.__setitem__(index, value)
@@ -351,9 +420,11 @@ def _mp(key, index):
 
 
 def _mpr(index):
-    return property(_mp("get", index), _mp("set", index), _mp("del", index))
-    
-    
+    return property(
+        _mp("get", index), _mp("set", index), _mp("del", index)
+    )
+
+
 class BinaryTree(Tree):
     def __setitem__(self, key, value):
         if not isinstance(value, self.__class__):
@@ -402,7 +473,7 @@ class BinaryTree(Tree):
         right = self.right
         if right:
             temp += right.postorder()
-        temp += (self.head, )
+        temp += (self.head,)
         return temp
 
 
@@ -416,7 +487,9 @@ class Default:
             self._type = _type
             return
         if _type not in (dict, list):
-            raise ValueError("_type to be dict or list, not %s" % _type.__name__)
+            raise ValueError(
+                "_type to be dict or list, not %s" % _type.__name__
+            )
         self.type = _type
         self._type = _type()
     
@@ -449,7 +522,9 @@ class Default:
         return len(self._type)
     
     def __getattribute__(self, item):
-        if item in ("__dict__", "copy", "value") or item in self.__dict__.keys():
+        if item in (
+                "__dict__", "copy",
+                "value") or item in self.__dict__.keys():
             return super(Default, self).__getattribute__(item)
         else:
             return getattr(self._type, item)
@@ -496,7 +571,7 @@ class Stack:
     
     def __init__(self):
         self._list = []
-        
+    
     @property
     def top(self):
         if self.empty():
@@ -533,7 +608,7 @@ class Stack:
         return str(list(self))
     
     def __getitem__(self, item):
-        return self._list[self.size-item-1]
+        return self._list[self.size - item - 1]
 
 
 class Queue:
@@ -581,7 +656,7 @@ class _EBTree(BinaryTree):
     def __init__(self, key=lambda a, b: a < b):
         self.key = key
         super(_EBTree, self).__init__(None)
-
+    
     def extend(self, __iter):
         for __obj in __iter:
             self.append(__obj)
@@ -617,7 +692,7 @@ class PileUp(_EBTree):
         while x >= 1 and self.key(__obj, self[x // 2]):
             self._swap(x, x // 2)
             x //= 2
-    
+
 
 class _Find:
     def __init__(self):
@@ -627,7 +702,8 @@ class _Find:
         return iter(self.__l)
     
     def __repr__(self):
-        return "route: %s, index: %d" % (" ".join(map(str, self.__l)), int(self))
+        return "route: %s, index: %d" % (
+            " ".join(map(str, self.__l)), int(self))
     
     def __int__(self):
         i = 1
@@ -639,16 +715,26 @@ class _Find:
         self.__l.insert(0, x)
 
 
+def get_fb(tree):
+    while tree.father is not None:
+        tree = tree.father
+    return tree
+
+
 class _Avl(_EBTree):
+    @property
+    def balance_factor(self):
+        return self.left.height - self.right.height
+    
     def remove(self, *objs):
         for obj in objs:
             temp = list(self.find(obj))
             tree = self
             for x in temp:
-                tree = tree[x+1]
+                tree = tree[x + 1]
             del tree[0]
             while tree:
-                if tree.left.height >= tree.right.height:
+                if tree.left.depth >= tree.right.depth:
                     tree = tree.left
                 else:
                     tree = tree.right
@@ -707,41 +793,46 @@ class _Avl(_EBTree):
     def _leftrotate(self):
         right = self.right
         self.right = right.left
-        if self.father.left == self:
-            self.father.left = right
-        else:
-            self.father.right = right
+        if self.father:
+            self.father.set(self, right)
         self.father = right
+        right.left = self
     
     def _rightrotate(self):
         left = self.left
         self.left = left.right
-        if self.father.left == self:
-            self.father.left = left
-        else:
-            self.father.right = left
+        if self.father:
+            self.father.set(self, left)
         self.father = left
+        left.right = self
     
     def _rotate(self):
-        if abs(self.left.height - self.right.height) <= 1:
+        if abs(self.balance_factor) <= 1:
             return
-        if self.left.height > self.right.height:
-            if self.left.left.height < self.left.right.height:
+        if self.balance_factor > 0:
+            if self.left.balance_factor < 0:
                 self.left._leftrotate()
             self._rightrotate()
         else:
-            if self.right.right.height < self.right.left.height:
+            if self.right.balance_factor > 0:
                 self.right._rightrotate()
             self._leftrotate()
     
     def __iter__(self):
         return iter(self.inorder())
-
+    
     def __contains__(self, item):
         return self.find(item) != -1
 
 
 class Avl:
+    def __repr__(self):
+        return str(self._avl)
+    
+    @property
+    def balance_factor(self):
+        return self._avl.balance_factor
+    
     @property
     def key(self):
         return self._avl.key
@@ -755,13 +846,11 @@ class Avl:
     
     def append(self, __obj):
         self._avl.append(__obj)
-        while self._avl.father is not None:
-            self._avl = self._avl.father
+        self._avl = get_fb(self._avl)
     
     def extend(self, __iter):
         self._avl.extend(__iter)
-        while self._avl.father is not None:
-            self._avl = self._avl.father
+        self._avl = get_fb(self._avl)
     
     def sort(self, key):
         self._avl.sort(key)
@@ -812,8 +901,8 @@ class Avl:
         return self.copy()
     
     @property
-    def height(self):
-        return self._avl.height
+    def depth(self):
+        return self._avl.depth
     
     @property
     def head(self):
@@ -822,31 +911,10 @@ class Avl:
     @property
     def wide(self):
         return 2
-
-
-def Immutable(obj):
-    if not hasattr(obj, "__hash__"):
-        temp = next(ImmutableType.__count)
-        obj.__hash__ = lambda self: temp
-    if not hasattr(obj, "__instancecheck__"):
-        obj.__instancecheck__ = lambda self, instance: (
-                isinstance(ImmutableObject, instance) or
-                issubclass(cls, instance)
-        )
-    return obj
-
-
-class ImmutableType(type):
-    __count = _Count(0)
     
-    def __new__(cls, *args, **kwargs):
-        nw = super().__new__(cls, *args, **kwargs)
-        nw = Immutable(nw)
-        return nw
-
-
-class ImmutableObject(metaclass=ImmutableType):
-    pass
+    @property
+    def image(self):
+        return self._avl.image
 
 
 class HashList:
@@ -855,7 +923,7 @@ class HashList:
         self.add(*adds)
     
     def add(self, *adds):
-        adds = _fl(adds)
+        adds = flatten(adds)
         for obj in adds:
             self._dict[hash(obj)] = obj
     
@@ -863,39 +931,22 @@ class HashList:
         return has in self._dict
     
     def remove(self, *removes):
-        removes = _fl(removes)
+        removes = flatten(removes)
         for obj in removes:
             del self._dict[hash(obj)]
     
     __contains__ = has
 
 
-def treeToTuple(tree):
-    temp = []
-    for i in range(tree.height):
-        temp.append([])
-        for j in range((i**tree.wide-1) // (tree.wide-1)+1, ((i+1)**tree.wide-1) // (tree.wide-1)+1):
-            temp[-1].append(tree[j])
-        temp[-1] = tuple(temp[-1])
-    return tuple(temp)
-
-
-def formatTree(tree):
-    nw = []
-    for i in range(tree.size):
-        if tree[i]:
-            st = getson(tree.wide, i)
-            nw.append(f"{i}: head,{tree[i].head}; son,{list(range(st, st + tree.wide))}")
-    return nw
-
-
 if __name__ == "__main__":
     avl = Avl()
-    l = list(range(11))
+    l = list(range(1, 11))
     import random
     random.shuffle(l)
     for x in l:
         avl.append(x)
-        print(x)
-    print(*formatTree(avl), sep="\n")
+        print(f"数{x}")
+        
+    image = avl.image
+    image.show()
     print(avl.inorder(), avl.count(1))

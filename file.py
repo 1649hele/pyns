@@ -1,25 +1,36 @@
-import os as _os
-
+import os, hashlib, random
 try:
-    from .iter import flatten as _flatten
+    from .iter import flatten
 except ImportError:
-    from iter import flatten as _flatten
+    from iter import flatten
 
 
-userfile = _os.path.expanduser("~")
-if not _os.path.exists(userfile + r"\Desktop"):
+userfile = os.path.expanduser("~")
+if not os.path.exists(userfile + r"\Desktop"):
     userfile += r"\OneDrive"
 
 
+def random_string():
+    md5 = hashlib.md5(str(random.random()).encode("utf-8"))
+    return md5.hexdigest()
+
+
+def get_random_filename():
+    p = random_string()
+    while os.path.exists(p):
+        p = random_string()
+    return p
+
+
 def change_display_file(file, display):
-    if _os.name == "nt":
-        _os.system(f'attrib {"+" if display else "-"}h {file}')
-    elif _os.name == "posix":
+    if os.name == "nt":
+        os.system(f'attrib {"+" if display else "-"}h {file}')
+    elif os.name == "posix":
         if file.startswith(".") and display:
             new = file.lstrip(".")
         elif not display and not file.startswith("."):
             new = "." + file
-        _os.rename(file, new)
+        os.rename(file, new)
     else:
         raise OSError("Can't recognition system")
 
@@ -27,21 +38,21 @@ def change_display_file(file, display):
 def keywords(file):
     from pyms.network import translate_text, ENGLISH
     if "\\" in file or "/" in file:
-        return _os.path.abspath(file)
+        return os.path.abspath(file)
     t = translate(file, _to=ENGLISH, autolang=False)[0]
-    if _os.path.exists(_os.path.join(userfile, t)):
-        return _os.path.join(userfile, t)
-    elif _os.path.exists(_os.path.join(userfile, t.title())):
-        return _os.path.join(userfile, t.title())
-    elif _os.path.exists(_os.path.join(userfile, "." + t)):
-        return _os.path.join(userfile, "." + t)
-    elif _os.path.exists(_os.path.join(userfile, "." + t.title())):
-        return _os.path.join(userfile, "." + t.title())
-    return _os.path.abspath(file)
+    if os.path.exists(os.path.join(userfile, t)):
+        return os.path.join(userfile, t)
+    elif os.path.exists(os.path.join(userfile, t.title())):
+        return os.path.join(userfile, t.title())
+    elif os.path.exists(os.path.join(userfile, "." + t)):
+        return os.path.join(userfile, "." + t)
+    elif os.path.exists(os.path.join(userfile, "." + t.title())):
+        return os.path.join(userfile, "." + t.title())
+    return os.path.abspath(file)
 
 
 def seek(filename, *seekdirs, eq=False, findone=False):
-    seekdirs = map(lambda n: keywords(n), _flatten(seekdirs))
+    seekdirs = map(lambda n: keywords(n), flatten(seekdirs))
     if not findone:
         findlist = []
     for seekdir in seekdirs:
@@ -51,7 +62,7 @@ def seek(filename, *seekdirs, eq=False, findone=False):
             else:
                 findlist.append(seekdir)
         try:
-            dir = list(map(lambda d: _os.path.join(seekdir, d), _os.listdir(seekdir)))
+            dir = list(map(lambda d: os.path.join(seekdir, d), os.listdir(seekdir)))
         except (PermissionError, NotADirectoryError):
             continue
         newfind = seek(filename, dir, eq=eq, findone=findone)
@@ -111,3 +122,4 @@ def translateFile(filename):
 
 if __name__ == '__main__':
     cff("https://wenku.baidu.com/view/a02d6a6c1eb91a37f1115c6a.html?fr=income1-doc-search&_wkts_=1714617378522&wkQuery=j&needWelcomeRecommand=1", "j.pdf")
+

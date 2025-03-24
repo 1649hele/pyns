@@ -5,7 +5,6 @@ from pyttsx3.engine import Engine
 from typing import Dict, Tuple
 
 
-FILE: str
 SR: int
 CH: int
 FM: int

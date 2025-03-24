@@ -32,6 +32,7 @@ setup(
         'weasyprint',
         'pyttsx3',
         'watchdog',
+        'Graphviz',
     ],
 )
 

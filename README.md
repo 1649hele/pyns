@@ -2,7 +2,7 @@
 
  自己的`python`库（[介绍](README.md)）
 
-- `flat_gui`：`pygame`继承模块（[介绍](flat_gui.pyi)）
+- `flat_gui`：`pygame`继承模块（[介绍](flat_gui_base.pyi)）
 
 - `fm`：关于数学的模块（[介绍](fm.pyi)）
   
