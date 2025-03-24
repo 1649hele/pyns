@@ -1,7 +1,7 @@
 try:
-    import flat_gui as _f
+    import flat_gui_base as _f
 except ModuleNotFoundError:
-    from . import flat_gui as _f
+    from . import flat_gui_base as _f
 import numpy as _np
 try:
     import fm as _math

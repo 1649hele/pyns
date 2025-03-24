@@ -2,7 +2,14 @@
 
  自己的`python`库（[介绍](README.md)）
 
-- `flat_gui`：`pygame`继承模块（[介绍](flat_gui.pyi)）
+- `flat_gui_base`：`pygame`继承模块（[介绍](flat_gui_base.pyi)）
+
+- `easypygame`：简单的游戏界面完成。
+
+  ```python
+  from pyms import easypygame
+  ```
+  效果：![](https://cdn.luogu.com.cn/upload/image_hosting/q7dlibzg.png)
 
 - `fm`：关于数学的模块（[介绍](fm.pyi)）
   

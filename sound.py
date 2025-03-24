@@ -1,39 +1,38 @@
-from pydub import playback as _pupb
-import pyaudio as _pd, wave as _wv, os as _os, pydub as _pu, threading as _td, librosa as _lr, soundfile as _sf, atexit as _ax, numpy as _np, io as _io, pyttsx3 as _ts
+from pydub import playback
+import pyaudio, wave, os, pydub, librosa, soundfile, atexit, numpy, io, pyttsx3
 try:
-    from . import func as _f, iter as _i
+    from . import func, iter, file
 except ImportError:
-    import func as _f, iter as _i
+    import func, iter, file
 
 
-FILE = "dd29442deca69f52c50006b831cb216edf78a7da33748f0a80ff19f2ebe57ecd"
 SR = 44100
 CH = 2
-FM = _pd.paInt32
-FMN = _np.float32
+FM = pyaudio.paInt32
+FMN = numpy.float32
 MUSICSUFFIX = ".music"
-_tts = _ts.init()
+_tts = pyttsx3.init()
 
 
 def _addexp(file, *ext):
-    ext = _i.flatten(ext)
-    return file + ("" if ext[0].startswith(".") else ".") + ".".join(ext) if "." not in _os.path.split(file)[-1] else file
+    ext = iter.flatten(ext)
+    return file + ("" if ext[0].startswith(".") else ".") + ".".join(ext) if "." not in os.path.split(file)[-1] else file
 
 
 class Sound:
     def __init__(self, file):
-        self.suffix = _os.path.splitext(file)[-1]
-        self.data = _io.BytesIO()
+        self.suffix = os.path.splitext(file)[-1]
+        self.data = io.BytesIO()
         with open(file, "rb") as f:
             self.data.write(f.read())
         self.data.seek(0)
     
     def speed_change(self, speed, file=None):
-        temp = FILE if file is None else file
+        temp = file.get_random_filename() if file is None else file
         temp = _addexp(temp, self.suffix)
-        y, sr = _lr.load(self.data, sr=None)
-        y_stretched = _lr.effects.time_stretch(y, rate=speed)
-        _sf.write(temp, y_stretched, sr)
+        y, sr = librosa.load(self.data, sr=None)
+        y_stretched = librosa.effects.time_stretch(y, rate=speed)
+        soundfile.write(temp, y_stretched, sr)
         temp = self.__class__(temp)
         return temp
     
@@ -44,15 +43,15 @@ class Sound:
             _ = 0
             while _ != cnt:
                 _ += 1
-                _pupb.play(self.from_file())
+                plaeyback.play(self.from_file())
         
         if newthread:
-            _td.Thread(daemon=daemon, target=play).start()
+            threading.Thread(daemon=daemon, target=play).start()
         else:
             play()
     
     def __add__(self, other):
-        temp = FILE
+        temp = file.get_random_filename()
         a1 = self.from_file()
         a2 = other.from_file()
         t = (".mp3" if len(a1) + len(a2) > 600000 else ".wav")
@@ -63,25 +62,25 @@ class Sound:
         a1 = self.from_file()
         a2 = other.from_file()
         t = (".mp3" if len(a1) + len(a2) > 600000 else ".wav")
-        temp = FILE
+        temp = file.get_random_filename()
         a1.overlay(a2, *args, **kwargs).export(temp, t[1:])
         return self.__class__(temp)
     
     def __getitem__(self, item):
         a1 = self.from_file()
-        temp = FILE
+        temp = file.get_random_filename()
         a1[item].export(temp, self.suffix)
         return self.__class__(temp)
 
     def from_file(self):
-        return _pu.AudioSegment.from_file(self.data, self.suffix)
+        return pudub.AudioSegment.from_file(self.data, self.suffix)
     
     def __len__(self):
         return len(self.from_file())
 
 
 def recording(st, sr=SR, channels=CH, format=FM, file=None):
-    p = _pd.PyAudio()
+    p = pyaudio.PyAudio()
     steam = p.open(sr, channels, format,  input=True)
     af = []
     print("\033[32mrecording start")
@@ -93,9 +92,9 @@ def recording(st, sr=SR, channels=CH, format=FM, file=None):
     steam.close()
     p.terminate()
     
-    temp = FILE if file is None else file
+    temp = file.get_random_filename() if file is None else file
     temp = _addexp(temp, ".wav")
-    wav = _wv.open(temp, "wb")
+    wav = wave.open(temp, "wb")
     wav.setnchannels(channels)
     wav.setsampwidth(p.get_sample_size(format))
     wav.setframerate(sr)
@@ -171,19 +170,19 @@ A4 = MusicalNote(0, A)
 
 
 def play_music(*musicalnotes, file=None):
-    musicalnotes = _i.flatten(musicalnotes)
-    audio_signal = _np.array([])
+    musicalnotes = iter.flatten(musicalnotes)
+    audio_signal = numpy.array([])
     for musicalnote in musicalnotes:
         frequency, note_feet = musicalnote.play_frequency()
         note_end = SR * note_feet * 60 // bpm
-        audio_signal = _np.append(audio_signal, 0.5 * _np.sin(2 * _np.pi * frequency * _np.linspace(0, note_end / SR, int(note_end), endpoint=False)))
-    file = FILE if file is None else file
+        audio_signal = numpy.append(audio_signal, 0.5 * numpy.sin(2 * numpy.pi * frequency * numpy.linspace(0, note_end / SR, int(note_end), endpoint=False)))
+    file = file.get_random_filename() if file is None else file
     file = _addexp(file, ".wav")
-    audio_signal = _np.repeat(audio_signal[:, _np.newaxis], 2, axis=1)
+    audio_signal = numpy.repeat(audio_signal[:, numpy.newaxis], 2, axis=1)
     audio_signal = audio_signal.astype(FMN)
-    wav = _wv.open(file, "wb")
+    wav = wave.open(file, "wb")
     wav.setnchannels(CH)
-    p = _pd.PyAudio()
+    p = pyaudio.PyAudio()
     wav.setsampwidth(p.get_sample_size(FM))
     wav.setframerate(SR)
     wav.writeframes(audio_signal.tobytes())
@@ -192,7 +191,7 @@ def play_music(*musicalnotes, file=None):
 
 
 def say(text, file=None):
-    file = FILE if file is None else file
+    file = file.get_random_filename() if file is None else file
     file = _addexp(file, ".wav")
     _tts.save_to_file(text, file)
     _tts.runAndWait()
@@ -204,12 +203,12 @@ def open_music(filename):
 
 
 def _exit():
-    for file in _os.listdir():
-        name, exp = _os.path.splitext(file)
-        if name == FILE:
-            _os.remove(file)
+    for file in os.listdir():
+        name, exp = os.path.splitext(file)
+        if name == file.get_random_filename():
+            os.remove(file)
 
 
-_ax.register(_exit)
+atexit.register(_exit)
 if __name__ == '__main__':
     say("你好，世界！Hello, World!").play()

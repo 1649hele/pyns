@@ -7,18 +7,9 @@ from typing import (
 from types import ModuleType
 
 
-def set_function(module: ModuleType, name: str, newname: str | None = None) -> None:...
 _CountFunc = Callable[[Any], Any]
 _AllCallable = Callable[[Any, ...], Any]
 _CountInputFunc = _CountFunc | str
-def flash_print(
-        *values: Iterable[Any, ...],
-        sep: str = " ",
-        file: TextIOWrapper = ...,
-        delay: int = 0,
-        end: str = "\n",
-        new_thread: bool = True
-) -> None:...
 
 class Count:
     _func: _CountFunc
@@ -73,6 +64,7 @@ class Thread(threading.Thread):
     def stop(self) -> None:...
 
 _overloads: Dict[str, _AllCallable]
+def fixed_parameters(func: _AllCallable, *args: Any, **kwargs: Any) -> Callable[[], Any]:...
 def overlod_dummy(*func: _AllCallable) -> _AllCallable:...
 def lhas(__obj: str, x: str) -> int:...
 def rhas(__obj: str, x: str) -> int:...

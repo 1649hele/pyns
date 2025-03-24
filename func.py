@@ -12,58 +12,6 @@ import functools as _tools
 _stdout = _s.stdout
 
 
-def set_function(module, name, newname=None):
-    if newname is None:
-        newname = name
-    temp = getattr(module, name)
-    exec("%s = temp" % newname)
-
-
-def flash_print(
-    *values,
-    sep=" ",
-    file=None,
-    delay=0,
-    end="\n",
-    new_thread=True,
-    _raise=True,
-):
-    delay /= 1000
-    
-    if file is None:
-        file = _s.stdout
-    
-    def prints():
-        for value in values:
-            for _char in value:
-                char = str(_char)
-                if char == "\000":
-                    break
-                elif char == "\b" and file != _stdout:
-                    readLen = open(file.name).read()
-                    readLen = len(readLen)
-                    if readLen > 0:
-                        file.truncate(readLen - 1)
-                    elif _raise:
-                        raise ValueError("file is be None can't remove char")
-                else:
-                    print(char, end="", flush=True, file=file)
-                _ordChar = ord(char)
-                if char not in ("\n", "\r", "", "\t", "\f", "\a", "\b") and (
-                    (
-                        32 <= _ordChar <= 127 or
-                        1469 >= _ordChar >= 3278
-                    ) and _ordChar not in (3252, 3258, 3259)
-                ):
-                    _d.sleep(delay)
-            print(sep, end="", file=file)
-        print(end, end="", file=file)
-    if new_thread:
-        _t.Thread(target=prints).start()
-    else:
-        prints()
-
-
 class Count:
     @property
     def number(self):
@@ -301,6 +249,10 @@ class Information:
                         ),
                     ),
                 )
+
+
+def fixed_parameters(func, *args, **kwargs):
+    return _tools.wraps(func)(lambda: func(*args, **kwargs))
 
 
 def overload_dummy(*funcs, raised=False):

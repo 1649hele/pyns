@@ -1,5 +1,3 @@
-__quit = quit
-
 import threading as _t
 from os import getcwd as _getcwd
 from os.path import isabs as _isabs, join as _join
@@ -16,24 +14,15 @@ try:
     from .fm import Angle, DEGREES, RADIANS
     from .func import overload as _overload
     from .iter import fill as _fill, flatten as _flatten
-    from .structures import Stack as _Stk
-    from .network import (
-        CHINESE as _c, ERRORCODE as _r, idlang as _il, toPinyin as _tp,
-    )
 except ImportError:
     from file import seek as _seek
     from fm import Angle, DEGREES, RADIANS
     from func import overload as _overload
     from iter import fill as _fill, flatten as _flatten
-    from structures import Stack as _Stk
-    from network import (
-        CHINESE as _c, ERRORCODE as _r, idlang as _il, toPinyin as _tp,
-    )
 
 import easygui as _eg
 
 
-quit = __quit
 get_screen = set_mode
 
 init()
@@ -661,14 +650,15 @@ class Background:
 
     def __init__(self, surface, background=None, *groups):
         self.surface = surface
-        if (
+        if background is not None:
+            if (
                 isinstance(background, (list, tuple, pygame.Color)) or
                 toColor(background) != background
-        ):
-            new = Surface(surface.get_size())
-            new.fill(background)
-            background = new
-        if background is not None:
+            ):
+                new = Surface(surface.get_size())
+                new.fill(background)
+                background = new
+        
             self.background = Sprite(background)
             self.spritebackground = self.background
             self.background.image = pygame.transform.scale(
@@ -719,12 +709,13 @@ def setDefaultbackground(background):
 
 
 class Backgrounds:
-    def __copy__(self):
+    def copy(self):
         return self.__class__(self.backgrounds)
 
-    copy = __copy__
+    def __copy__(self):
+        return self.copy()
 
-    def settodraw(self, background):
+    def set_background(self, background):
         if background in self.backgrounds:
             self.default_background = background
 
@@ -741,7 +732,7 @@ class Backgrounds:
             if self.backgrounds:
                 self.default_background = self.backgrounds[0]
             elif default_background:
-                self.settodraw(default_background)
+                self.set_background(default_background)
         if self.default_background is not None:
             self.default_background.draw(surface)
         else:
@@ -805,6 +796,9 @@ class Backgrounds:
                 if hasattr(background, "to_iter"):
                     self.remove(background.to_iter())
                 raise
+    
+    def update(self):
+        self.default_background.update()
 
 
 # Text class
