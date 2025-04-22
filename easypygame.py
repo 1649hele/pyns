@@ -1,10 +1,11 @@
 import threading as _threading
 try:
-    import flat_gui_base as _base, fm as _math, func as _func
+    import flat_gui_base as _base, fm as _math, func as _func, iter as _iter
     from fm import RADIANS, DEGREES
 except:
-    from . import flat_gui_base as _base, fm as _math, func as _func
+    from . import flat_gui_base as _base, fm as _math, func as _func, iter as _iter
     from .fm import RADIANS, DEGREES
+from pygame.constants import *
 fixed_parameters = _func.fixed_parameters
 
 
@@ -45,7 +46,7 @@ class Sprite(_base.Sprite):
     
     @property
     def center(self):
-        return (self.x + self.relative_center * self.width, self.y + self.relative_center * self.height)
+        return (self.x + self.relative_center[0] * self.width, self.y + self.relative_center[1] * self.height)
     
     @center.setter
     def center(self, value):
@@ -62,7 +63,7 @@ class Sprite(_base.Sprite):
     def angleright(self, angle, center=None):
         if center is None:
             center = self.center
-        self.goto(rotate_point(self.xy, center, angle.radians))
+        self.goto(*rotate_point(self.xy, center, angle.radians))
     
     @_func.overload
     def angleright(self, types, number, center=None):
@@ -86,8 +87,8 @@ def complete_within(func, time):
     args and kwargs must (length or angle) /= (time * FPS)
     """
     def to_start():
-        for i in range(time):
-            func(*args, **kwargs)
+        for i in range(round(time)):
+            func()
             _base.clock.tick(FPS)
     
     time *= FPS
@@ -119,7 +120,7 @@ def click(keys=(1,), max_time=500, max_distance=5, rect=None):
     rect: _base.Rect
     click_pos = None
     click_time = None
-    for event in _base.event.get(MOUSEBUTTONUP, MOUSEBUTTONDOWN):
+    for event in check_event(MOUSEBUTTONUP, MOUSEBUTTONDOWN):
         print(event)
         if event.type == MOUSEBUTTONDOWN:
             if event.key in keys:
@@ -129,7 +130,7 @@ def click(keys=(1,), max_time=500, max_distance=5, rect=None):
             print("Check mouse")
             if (
                 get_ticks() - click_time <= time and
-                get_distance(mouse_position(), click_time) <= max_distance and
+                get_distance(mouse_position(), click_pos) <= max_distance and
                 (rect is None or rect.collidepoint(click_pos))
             ):
                 return True
@@ -137,21 +138,25 @@ def click(keys=(1,), max_time=500, max_distance=5, rect=None):
             click_pos = None
 
 
-KEYDOWN = _base.KEYDOWN
-KEYUP = _base.KEYUP
-MOUSEBUTTONDOWN = _base.MOUSEBUTTONDOWN
-MOUSEBUTTONUP = _base.MOUSEBUTTONUP
+def get_event(func):
+    tmp = []
+    for event in _base.event.get():
+        if func(event):
+            tmp.append(event)
+        else:
+            _base.event.post(event)
+    return tmp
 
 
 def press_key(keys, types):
-    for event in _base.event.get(types):
+    for event in get_event(lambda e: e.type in types and e.key in keys):
         if event.key in keys:
             return event
         _base.event.post(event)
 
 
 def delay(time):
-    _base.time.delay(time / 1000)
+    _base.time.delay(time * 1000)
 
 
 def mouse_position(x=None):
@@ -161,19 +166,25 @@ def mouse_position(x=None):
         _base.mouse.set_pos(x)
 
 
-def check_event(types):
-    for event in _base.event.get(types):
-        return event
+def check_event(*types):
+    tmp = []
+    types = _iter.flatten(types)
+    for event in get_event(lambda event: event in types):
+        tmp.append(event)
+    return tmp
 
 
 def check_basic():
-    for quit_event in _base.event.get((_base.QUIT, KEYUP)):
-        if quit_event.type == QUIT or quit_event.key == K_ESCAPE:
-            return quit_event
-        elif minmize and quit_event.key == minmize:
-            return quit_event
-        else:
-            pygame.event.post(quit_event)
+    def check_quit(event):
+        return event.type == QUIT or (event.type == KEYUP and event.key == K_ESCAPE)
+    for event in get_event(check_quit):
+        quit_game()
+        return
+
+    def check_minmize(event):
+        return event.type == KEYUP and event.key == K_F10
+    for event in get_event(check_minmize):
+        _base.iconify()
 
 
 _running = True
@@ -207,6 +218,7 @@ def start(func, start_factor, times=None, new_thread=True):
 display_screen = None
 screen = None
 backgrounds = _base.Backgrounds(_base.Background(None))
+quit_command = lambda: None
 backgrounds.set_background(backgrounds.backgrounds[0])
 
 
@@ -226,17 +238,9 @@ def start_game():
     screen = display_screen.convert_alpha()
     while _running:
         screen.fill((255, 255, 255, 255))
-        for event in _base.event.get((_base.QUIT, KEYUP, _base.VIDEORESIZE)):
-            if event.type == _base.QUIT or event.key == _base.K_ESCAPE:
-                _running = False
-                _base.pygame.quit()
-                return
-            elif event.key == _base.K_F10:
-                _base.iconify()
-            elif event.type == _base.VIDEORESIZE:
-                screen = display_screen.convert_alpha()
-            else:
-                _base.event.post(event)
+        check_basic()
+        if not _running:
+            return
         update()
         _base.clock.tick(FPS)
 
@@ -244,10 +248,11 @@ def start_game():
 _threading.Thread(target=start_game).start()
 
 
-def quit():
-    _base.quit()
+def quit_game():
+    quit_command()
     global _running
     _running = False
+    _base.pygame.quit()
 
 
 def screen_size(size=None):

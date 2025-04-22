@@ -395,8 +395,7 @@ class Sprite(pygame.sprite.Sprite):
     
     def copy(self):
         temp = self.__class__(
-            self.image, None, 0, *self.groups())
-        temp.set_angle(self.angle)
+            self.image, None, self.angle, *self.groups())
         return temp
     
     __copy__ = copy
@@ -409,32 +408,8 @@ class Sprite(pygame.sprite.Sprite):
     def __iadd__(self, other):
         if isinstance(other, pygame.sprite.Sprite):
             self.image.blit(other.image, other.rect)
-        elif isinstance(other, Angle):
-            self.angleleft(other)
-        elif isinstance(other, (list, tuple)):
-            x, y = other
-            self.rect.x += x
-            self.rect.y += y
-        elif isinstance(other, Rect):
-            self.rect.x += other.x
-            self.rect.y = other.y
-        return self
-    
-    def __sub__(self, other):
-        new = self.copy()
-        new -= other
-        return new
-    
-    def __isub__(self, other):
-        if isinstance(other, Sprite):
-            raise AttributeError("other can't be Sprite")
-        elif isinstance(other, int):
-            self.angleright(other)
-        elif isinstance(other, (list, tuple)):
-            x, y = other
-            self.rect.x -= x
-            self.rect.y -= y
-        return self
+            return self
+        return NotImplemented
     
     @_overload
     def blit(self, sprite):
@@ -576,19 +551,11 @@ class Background:
             try:
                 self.add(*backgrounds)
             except:
-                if hasattr(backgrounds, "to_iter"):
-                    for bakcground in backgrounds:
-                        self.add(background)
-                    continue
-                elif isinstance(backgrounds, pygame.Surface):
+                if isinstance(backgrounds, pygame.Surface):
                     self.add(Group(Sprite(backgrounds)))
                     continue
                 elif isinstance(backgrounds, pygame.sprite.Sprite):
                     self.add(Group(backgrounds))
-                    continue
-                elif hasattr(backgrounds, "__iter__"):
-                    for bakcground in backgrounds:
-                        self.add(background)
                     continue
     
     def __contains__(self, item):
@@ -610,7 +577,7 @@ class Background:
 
     def remove(self, *backgroundses):
         for backgrounds in backgroundses:
-            if isinstance(backgrounds, Background):
+            if isinstance(backgrounds, Backgrounds):
                 self.remove_backgrounds(backgrounds)
                 backgrounds.remove_background(self)
                 continue
@@ -618,17 +585,7 @@ class Background:
                 self.remove_group(backgrounds)
                 continue
 
-            try:
-                self.remove(*backgrounds)
-            except:
-                if hasattr(backgrounds, "to_iter"):
-                    for background in backgrounds.to_iter():
-                        self.remove(background)
-                    continue
-                elif hasattr(backgrounds, "__iter__"):
-                    for bakcground in backgrounds:
-                        self.remove(background)
-                    continue
+            self.remove(*backgrounds)
 
     def add_backgrounds(self, backgrounds):
         if not self.has_backgrounds(backgrounds):
@@ -660,15 +617,12 @@ class Background:
                 background = new
         
             self.background = Sprite(background)
-            self.spritebackground = self.background
             self.background.image = pygame.transform.scale(
                 self.background.image,
                 surface.get_size(),
             )
-            self.background = Group(self.background)
         else:
             self.background = None
-            self.spritebackground = None
         self.background_groups = []
         self.__groups = []
         self.add(*groups)
@@ -678,11 +632,11 @@ class Background:
     def update(self, *args, **kw):
         if self.background:
             self.remove(self.background)
-            self.spritebackground.image = pygame.transform.scale(
-                self.spritebackground.image,
+            self.background.image = pygame.transform.scale(
+                self.background.image,
                 self.surface.get_size(),
             )
-            self.spritebackground.update(0, 0)
+            self.background.update(0, 0)
 
         for group in self.groups():
             group.update(*args, **kw)

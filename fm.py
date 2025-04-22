@@ -331,7 +331,7 @@ class Complex:
         if isinstance(other, (int, float, complex)):
             return complex(complex(other) + self.complex)
         else:
-            return type(other)(complex(other) + self.complex)
+            return NotImplemented
     
     def __sub__(self, other):
         other = Complex(other)
@@ -341,7 +341,7 @@ class Complex:
         if isinstance(other, (int, float, complex)):
             return complex(complex(other) - self.complex)
         else:
-            return type(other)(complex(other) - self.complex)
+            return NotImplemented
     
     def exp(self):
         return Complex(e ** self)

@@ -97,7 +97,7 @@ class Sprite(pygame.sprite.Sprite):
     image: pygame.Surface
     rect: pygame.Rect
     angle: Angle
-    name: int
+    name: str
     x: int
     y: int
     top: int
@@ -291,7 +291,6 @@ class Button(Sprite):
     rect: pygame.Rect
     command: _Call
     text: Text
-    _key: int
     
     @overload
     def bind(self, key: int) -> None:...
@@ -333,8 +332,7 @@ pygame = pygame
 
 class Background:
     surface: Surface
-    background: Group | None
-    spritebackground: Sprite | None
+    background: Optional[Sprite]
     background_groups: list
     __groups: list
 
@@ -343,7 +341,7 @@ class Background:
     def backgrounds(self) -> tuple:...
     def __init__(
             self,
-            surface: Surface,
+            surface: Optional[Surface],
             background: Surface | None | _Color = None,
             *sprites: Sprite,
     ) -> None:...
@@ -375,9 +373,9 @@ class Backgrounds:
 
     def set_background(self, backdround: Background) -> None:...
     def draw(self, surface: Surface | None = None, find: bool = ...) -> None:...
-    def add_background(self, backgrounds: Backgrounds) -> None:...
-    def remove_background(self, backgrounds: Backgrounds) -> None:...
-    def has_background(self, backgrounds: Backgrounds) -> bool:...
+    def add_background(self, background: Background) -> None:...
+    def remove_background(self, background: Background) -> None:...
+    def has_background(self, background: Background) -> bool:...
     def add(self, *backgrounds) -> None:...
     def remove(self, *backgrounds) -> None:...
     def __repr__(self) -> str: ...
