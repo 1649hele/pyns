@@ -42,9 +42,9 @@ class Sprite(_base.Sprite):
         self,
         (
             types: _DAGORRAD,
-            number: _Num
+            number: _Num,
         ),
-        center: Optional[_Pos] = None
+        center: Optional[_Pos] = None,
     ) -> None:...
     def angleleft(
         self,

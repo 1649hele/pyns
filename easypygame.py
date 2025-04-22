@@ -119,7 +119,7 @@ def click(keys=(1,), max_time=500, max_distance=5, rect=None):
     rect: _base.Rect
     click_pos = None
     click_time = None
-    for event in _base.event.get(MOUSEBUTTONUP, MOUSEBUTTONDOWN):
+    for event in get_event((MOUSEBUTTONUP, MOUSEBUTTONDOWN)):
         print(event)
         if event.type == MOUSEBUTTONDOWN:
             if event.key in keys:
@@ -141,10 +141,27 @@ KEYDOWN = _base.KEYDOWN
 KEYUP = _base.KEYUP
 MOUSEBUTTONDOWN = _base.MOUSEBUTTONDOWN
 MOUSEBUTTONUP = _base.MOUSEBUTTONUP
+event_list = set()
+
+
+def get_event(types):
+    return tuple(event for event in event_list if event.type in types)
+
+
+def use_event(event):
+    event_list.remove(event)
+
+
+def check_event():
+    for event in _base.event.get():
+        event_list.add(event)
+
+
+_threading.Thread(daemon=True, target=check_event).start()
 
 
 def press_key(keys, types):
-    for event in _base.event.get(types):
+    for event in get_event(types):
         if event.key in keys:
             return event
         _base.event.post(event)
@@ -162,12 +179,12 @@ def mouse_position(x=None):
 
 
 def check_event(types):
-    for event in _base.event.get(types):
+    for event in get_event(types):
         return event
 
 
 def check_basic():
-    for quit_event in _base.event.get((_base.QUIT, KEYUP)):
+    for quit_event in get_event((_base.QUIT, KEYUP)):
         if quit_event.type == QUIT or quit_event.key == K_ESCAPE:
             return quit_event
         elif minmize and quit_event.key == minmize:
@@ -226,7 +243,7 @@ def start_game():
     screen = display_screen.convert_alpha()
     while _running:
         screen.fill((255, 255, 255, 255))
-        for event in _base.event.get((_base.QUIT, KEYUP, _base.VIDEORESIZE)):
+        for event in get_event((_base.QUIT, KEYUP, _base.VIDEORESIZE)):
             if event.type == _base.QUIT or event.key == _base.K_ESCAPE:
                 _running = False
                 _base.pygame.quit()
